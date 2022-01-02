@@ -17,6 +17,7 @@ typedef int SOCKET;
 
 #ifdef HL_MAC
 #include <Security/Security.h>
+#define MBEDTLS_ALLOW_PRIVATE_ACCESS
 #endif
 
 #define SOCKET_ERROR (-1)
@@ -593,7 +594,7 @@ HL_PRIM hl_ssl_pkey *HL_NAME(key_from_der)(vbyte *data, int len, bool pub) {
 	if (pub)
 		r = mbedtls_pk_parse_public_key(pk, (const unsigned char*)data, len);
 	else
-		r = mbedtls_pk_parse_key(pk, (const unsigned char*)data, len, NULL, 0);
+		r = mbedtls_pk_parse_key(pk, (const unsigned char*)data, len, NULL, 0, NULL, 0);
 	if (r != 0) {
 		mbedtls_pk_free(pk);
 		free(pk);
@@ -605,6 +606,7 @@ HL_PRIM hl_ssl_pkey *HL_NAME(key_from_der)(vbyte *data, int len, bool pub) {
 	key->finalize = pkey_finalize;
 	return key;
 }
+
 
 HL_PRIM hl_ssl_pkey *HL_NAME(key_from_pem)(vbyte *data, bool pub, vbyte *pass) {
 	int r, len;
@@ -619,9 +621,9 @@ HL_PRIM hl_ssl_pkey *HL_NAME(key_from_pem)(vbyte *data, bool pub, vbyte *pass) {
 	if (pub)
 		r = mbedtls_pk_parse_public_key(pk, buf, len);
 	else if (pass == NULL)
-		r = mbedtls_pk_parse_key(pk, buf, len, NULL, 0);
+		r = mbedtls_pk_parse_key(pk, buf, len, NULL, 0, NULL, 0);
 	else
-		r = mbedtls_pk_parse_key(pk, buf, len, (const unsigned char*)pass, strlen((char*)pass));
+		r = mbedtls_pk_parse_key(pk, buf, len, (const unsigned char*)pass, strlen((char*)pass), NULL, 0);
 	free(buf);
 	if (r != 0) {
 		mbedtls_pk_free(pk);
@@ -678,13 +680,15 @@ HL_PRIM vbyte *HL_NAME(dgst_sign)(vbyte *data, int len, hl_ssl_pkey *key, vbyte 
 	}
 
 	out = hl_gc_alloc_noptr(MBEDTLS_MPI_MAX_SIZE);
-	if ((r = mbedtls_pk_sign(key->k, mbedtls_md_get_type(md), hash, 0, out, (size ? &ssize : NULL), mbedtls_ctr_drbg_random, &ctr_drbg)) != 0){
+	if ((r = mbedtls_pk_sign(key->k, mbedtls_md_get_type(md), hash, 0, out, size, (size ? &ssize : NULL), mbedtls_ctr_drbg_random, &ctr_drbg)) != 0){
 		ssl_error(r);
 		return NULL;
 	}
 	if( size ) *size = (int)ssize;
 	return out;
 }
+
+
 
 HL_PRIM bool HL_NAME(dgst_verify)(vbyte *data, int dlen, vbyte *sign, int slen, hl_ssl_pkey *key, vbyte *alg) {
 	const mbedtls_md_info_t *md;
