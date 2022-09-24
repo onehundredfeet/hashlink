@@ -1,5 +1,5 @@
 package sdl;
-
+#if !hlsdl_no_gl
 abstract Uniform(Null<Int>) {
 }
 
@@ -935,3 +935,4 @@ class GL {
 	public static inline var ALL_BARRIER_BITS                = 0xFFFFFFFF;
 
 }
+#end

@@ -321,8 +321,7 @@ class Window {
 		return false;
 	}
 
-	static function winDestroy( win : WinPtr ) {
-	}
+
 
 	public static function getScreenWidth() {
 		return 0;

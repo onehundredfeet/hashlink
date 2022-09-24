@@ -1,7 +1,6 @@
 package sdl;
 
 typedef WinPtr = hl.Abstract<"sdl_window">;
-private typedef GLContext = hl.Abstract<"sdl_gl">;
 typedef DisplayHandle = Null<Int>;
 
 @:enum abstract DisplayMode(Int) {
@@ -45,9 +44,10 @@ class Window {
 	public static inline var SDL_WINDOW_TOOLTIP            = 0x00040000;
 	public static inline var SDL_WINDOW_POPUP_MENU         = 0x00080000;
 	public static inline var SDL_WINDOW_VULKAN             = 0x10000000;
+	public static inline var SDL_WINDOW_METAL              = 0x20000000;
+	
 
 	var win : WinPtr;
-	var glctx : GLContext;
 	var lastFrame : Float;
 	public var title(default, set) : String;
 	public var vsync(default, set) : Bool;
@@ -66,75 +66,12 @@ class Window {
 	public var opacity(get, set) : Float;
 	public var grab(get, set) : Bool;
 
-	public function new( title : String, width : Int, height : Int, x : Int = SDL_WINDOWPOS_CENTERED, y : Int = SDL_WINDOWPOS_CENTERED, sdlFlags : Int = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE ) {
-		while( true ) {
-			win = winCreateEx(x, y, width, height, sdlFlags);
-			if( win == null ) throw "Failed to create window";
-			glctx = winGetGLContext(win);
-			if( glctx == null || !GL.init() || !testGL() ) {
-				destroy();
-				if( Sdl.onGlContextRetry() ) continue;
-				Sdl.onGlContextError();
-			}
-			break;
-		}
+	public function new( title : String ) {
+
 		this.title = title;
 		windows.push(this);
-		vsync = true;
 	}
 
-	function testGL() {
-		try {
-
-			var reg = ~/[0-9]+\.[0-9]+/;
-			var v : String = GL.getParameter(GL.SHADING_LANGUAGE_VERSION);
-
-			var glv : String = GL.getParameter(GL.VERSION);
-			var isOpenGLES : Bool = ((glv!=null) && (glv.indexOf("ES") >= 0));
-
-			var shaderVersion = 120;
-			if (isOpenGLES) {
-				if( reg.match(v) )
-					shaderVersion = Std.int(Math.min( 100, Math.round( Std.parseFloat(reg.matched(0)) * 100 ) ));
-			}
-			else {
-				shaderVersion = 130;
-				if( reg.match(v) ) {
-					var minVer = 150;
-					shaderVersion = Math.round( Std.parseFloat(reg.matched(0)) * 100 );
-					if( shaderVersion < minVer ) shaderVersion = minVer;
-				}
-			}
-
-			var vertex = GL.createShader(GL.VERTEX_SHADER);
-			GL.shaderSource(vertex, ["#version " + shaderVersion, "void main() { gl_Position = vec4(1.0); }"].join("\n"));
-			GL.compileShader(vertex);
-			if( GL.getShaderParameter(vertex, GL.COMPILE_STATUS) != 1 ) throw "Failed to compile VS ("+GL.getShaderInfoLog(vertex)+")";
-
-			var fragment = GL.createShader(GL.FRAGMENT_SHADER);
-			if (isOpenGLES)
-				GL.shaderSource(fragment, ["#version " + shaderVersion, "lowp vec4 color; void main() { color = vec4(1.0); }"].join("\n"));
-			else
-				GL.shaderSource(fragment, ["#version " + shaderVersion, "out vec4 color; void main() { color = vec4(1.0); }"].join("\n"));
-			GL.compileShader(fragment);
-			if( GL.getShaderParameter(fragment, GL.COMPILE_STATUS) != 1 ) throw "Failed to compile FS ("+GL.getShaderInfoLog(fragment)+")";
-
-			var p = GL.createProgram();
-			GL.attachShader(p, vertex);
-			GL.attachShader(p, fragment);
-			GL.linkProgram(p);
-
-			if( GL.getProgramParameter(p, GL.LINK_STATUS) != 1 ) throw "Failed to link ("+GL.getProgramInfoLog(p)+")";
-
-			GL.deleteShader(vertex);
-			GL.deleteShader(fragment);
-
-		} catch( e : Dynamic ) {
-
-			return false;
-		}
-		return true;
-	}
 
 	function set_title(name:String) {
 		winSetTitle(win, @:privateAccess name.toUtf8());
@@ -235,8 +172,7 @@ class Window {
 	}
 
 	function set_vsync(v) {
-		setVsync(v);
-		return vsync = v;
+		return v;
 	}
 
 	function get_opacity() {
@@ -257,28 +193,13 @@ class Window {
 		return v;
 	}
 
-	/**
-		Set the current window you will render to (in case of multiple windows)
-	**/
 	public function renderTo() {
-		winRenderTo(win, glctx);
 	}
 
 	public function present() {
-		if( vsync && @:privateAccess Sdl.isWin32 ) {
-			// NVIDIA OpenGL windows driver does implement vsync as an infinite loop, causing high CPU usage
-			// make sure to sleep a bit here based on how much time we spent since the last frame
-			var spent = haxe.Timer.stamp() - lastFrame;
-			if( spent < 0.005 ) Sys.sleep(0.005 - spent);
-		}
-		winSwapWindow(win);
-		lastFrame = haxe.Timer.stamp();
 	}
 
 	public function destroy() {
-		try winDestroy(win, glctx) catch( e : Dynamic ) {};
-		win = null;
-		glctx = null;
 		windows.remove(this);
 	}
 
@@ -294,11 +215,11 @@ class Window {
 		winResize(win, 2);
 	}
 
-	static function winCreateEx( x : Int, y : Int, width : Int, height : Int, sdlFlags : Int ) : WinPtr {
+	static function winCreateEx( x : Int, y : Int, width : Int, height : Int, sdlFlags : Int) : WinPtr {
 		return null;
 	}
 
-	static function winCreate( width : Int, height : Int ) : WinPtr {
+	static function winCreate( width : Int, height : Int, sdlFlags : Int ) : WinPtr {
 		return null;
 	}
 
@@ -311,12 +232,9 @@ class Window {
 	static function winGetPosition( win : WinPtr, width : hl.Ref<Int>, height : hl.Ref<Int> ) {
 	}
 
-	static function winGetGLContext( win : WinPtr ) : GLContext {
-		return null;
-	}
 
-	static function winSwapWindow( win : WinPtr ) {
-	}
+
+
 
 	static function winSetFullscreen( win : WinPtr, mode : DisplayMode ) {
 		return false;
@@ -361,14 +279,9 @@ class Window {
 		return false;
 	}
 
-	static function winRenderTo( win : WinPtr, gl : GLContext ) {
-	}
+	
 
-	static function winDestroy( win : WinPtr, gl : GLContext ) {
-	}
 
-	static function setVsync( b : Bool ) {
-	}
 
 	static function setWindowGrab( win : WinPtr, grab : Bool ) {
 	}

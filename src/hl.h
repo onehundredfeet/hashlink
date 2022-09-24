@@ -235,7 +235,11 @@ HL_API int uvszprintf( uchar *out, int out_size, const uchar *fmt, va_list argli
 #	define ucmp(a,b)	wcscmp(a,b)
 #	define utostr(out,size,str) wcstombs(out,str,size)
 #elif defined(HL_MAC)
+#ifdef __cplusplus
+typedef char16_t uchar;
+#else
 typedef uint16_t uchar;
+#endif
 #	undef USTR
 #	define USTR(str)	u##str
 #else

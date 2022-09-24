@@ -1,7 +1,7 @@
 #define HL_NAME(n) sdl_##n
-
-#include <hl.h>
+#include "sdl_common.h"
 #include <locale.h>
+
 
 #if defined(_WIN32) || defined(__ANDROID__) || defined(HL_IOS) || defined(HL_TVOS)
 #	include <SDL.h>
@@ -12,88 +12,14 @@
 #	include <SDL2/SDL.h>
 #endif
 
-#if defined (HL_IOS) || defined(HL_TVOS)
-#	include <OpenGLES/ES3/gl.h>
-#	include <OpenGLES/ES3/glext.h>
-#endif
 
 #ifndef SDL_MAJOR_VERSION
 #	error "SDL2 SDK not found in hl/include/sdl/"
 #endif
 
 #define TWIN _ABSTRACT(sdl_window)
-#define TGL _ABSTRACT(sdl_gl)
 
-typedef struct {
-	int x;
-	int y;
-	int w;
-	int h;
-	int style;
-} wsave_pos;
-
-typedef enum {
-	Quit,
-	MouseMove,
-	MouseLeave,
-	MouseDown,
-	MouseUp,
-	MouseWheel,
-	WindowState,
-	KeyDown,
-	KeyUp,
-	TextInput,
-	GControllerAdded = 100,
-	GControllerRemoved,
-	GControllerDown,
-	GControllerUp,
-	GControllerAxis,
-	TouchDown = 200,
-	TouchUp,
-	TouchMove,
-	JoystickAxisMotion = 300,
-	JoystickBallMotion,
-	JoystickHatMotion,
-	JoystickButtonDown,
-	JoystickButtonUp,
-	JoystickAdded,
-	JoystickRemoved,
-} event_type;
-
-typedef enum {
-	Show,
-	Hide,
-	Expose,
-	Move,
-	Resize,
-	Minimize,
-	Maximize,
-	Restore,
-	Enter,
-	Leave,
-	Focus,
-	Blur,
-	Close
-} ws_change;
-
-typedef struct {
-	hl_type *t;
-	event_type type;
-	int mouseX;
-	int mouseY;
-	int mouseXRel;
-	int mouseYRel;
-	int button;
-	int wheelDelta;
-	ws_change state;
-	int keyCode;
-	int scanCode;
-	bool keyRepeat;
-	int controller;
-	int value;
-	int fingerId;
-	int joystick;
-} event_data;
+void initOnceGL();
 
 HL_PRIM bool HL_NAME(init_once)() {
 	SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
@@ -106,43 +32,12 @@ HL_PRIM bool HL_NAME(init_once)() {
 	// Set the internal windows timer period to 1ms (will give accurate sleep for vsync)
 	timeBeginPeriod(1);
 #	endif
-	// default GL parameters
-#ifdef HL_MOBILE
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-#else
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-#endif
-	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+
+	initOnceGL();
 
 	return true;
 }
 
-HL_PRIM void HL_NAME(gl_options)( int major, int minor, int depth, int stencil, int flags, int samples ) {
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, major);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, minor);
-	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, depth);
-	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, stencil);
-	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, (flags&1));
-	if( flags&2 )
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-	else if( flags&4 )
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
-	else if( flags&8 )
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-	else
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, 0); // auto
-
-	if (samples > 1) {
-		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, samples);
-	}
-}
 
 HL_PRIM bool HL_NAME(hint_value)( vbyte* name, vbyte* value) {
 	return SDL_SetHint((char*)name, (char*)value) == SDL_TRUE;
@@ -390,9 +285,7 @@ HL_PRIM void HL_NAME(message_box)(vbyte *title, vbyte *text, bool error) {
 }
 
 
-HL_PRIM void HL_NAME(set_vsync)(bool v) {
-	SDL_GL_SetSwapInterval(v ? 1 : 0);
-}
+
 
 HL_PRIM bool HL_NAME(detect_win32)() {
 #	ifdef _WIN32
@@ -447,7 +340,6 @@ HL_PRIM const char *HL_NAME(detect_keyboard_layout)() {
 
 #define TWIN _ABSTRACT(sdl_window)
 DEFINE_PRIM(_BOOL, init_once, _NO_ARG);
-DEFINE_PRIM(_VOID, gl_options, _I32 _I32 _I32 _I32 _I32 _I32);
 DEFINE_PRIM(_BOOL, event_loop, _DYN );
 DEFINE_PRIM(_VOID, quit, _NO_ARG);
 DEFINE_PRIM(_VOID, delay, _I32);
@@ -457,7 +349,6 @@ DEFINE_PRIM(_I32, get_screen_width_of_window, TWIN);
 DEFINE_PRIM(_I32, get_screen_height_of_window, TWIN);
 DEFINE_PRIM(_I32, get_framerate, TWIN);
 DEFINE_PRIM(_VOID, message_box, _BYTES _BYTES _BOOL);
-DEFINE_PRIM(_VOID, set_vsync, _BOOL);
 DEFINE_PRIM(_BOOL, detect_win32, _NO_ARG);
 DEFINE_PRIM(_VOID, text_input, _BOOL);
 DEFINE_PRIM(_I32, set_relative_mouse_mode, _BOOL);
@@ -478,7 +369,9 @@ HL_PRIM SDL_Window *HL_NAME(win_create_ex)(int x, int y, int width, int height, 
 	SDL_GetDesktopDisplayMode(0, &displayMode);
 	SDL_Window* win = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS | sdlFlags);
 #else
-	SDL_Window* win = SDL_CreateWindow("", x, y, width, height, SDL_WINDOW_OPENGL | sdlFlags);
+	printf("Creating SDL WIndow x %x y %x %d\n", x, y, sdlFlags);
+	//sdlFlags must include backend
+	SDL_Window* win = SDL_CreateWindow("", x, y, width, height,  sdlFlags);
 #endif
 #	ifdef HL_WIN
 	// force window to show even if the debugger force process windows to be hidden
@@ -487,16 +380,15 @@ HL_PRIM SDL_Window *HL_NAME(win_create_ex)(int x, int y, int width, int height, 
 		SDL_ShowWindow(win);
 	}
 #	endif
+	printf("Created Window %p\n", win);
 	return win;
 }
 
-HL_PRIM SDL_Window *HL_NAME(win_create)(int width, int height) {
-	return HL_NAME(win_create_ex)(SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, 0);
+HL_PRIM SDL_Window *HL_NAME(win_create)(int width, int height, int sdlflags) {
+	return HL_NAME(win_create_ex)(SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, sdlflags);
 }
 
-HL_PRIM SDL_GLContext HL_NAME(win_get_glcontext)(SDL_Window *win) {
-	return SDL_GL_CreateContext(win);
-}
+
 
 HL_PRIM bool HL_NAME(win_set_fullscreen)(SDL_Window *win, int mode) {
 #	ifdef HL_WIN
@@ -634,31 +526,13 @@ HL_PRIM void HL_NAME(win_resize)(SDL_Window *win, int mode) {
 }
 
 
-HL_PRIM void HL_NAME(win_swap_window)(SDL_Window *win) {
-#if defined(HL_IOS) || defined(HL_TVOS)
-	SDL_SysWMinfo info;
-	SDL_VERSION(&info.version);
-	SDL_GetWindowWMInfo(win, &info);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, info.info.uikit.framebuffer);
-	glBindRenderbuffer(GL_RENDERBUFFER,info.info.uikit.colorbuffer);
-#endif
-	SDL_GL_SwapWindow(win);
-}
 
-HL_PRIM void HL_NAME(win_render_to)(SDL_Window *win, SDL_GLContext gl) {
-	SDL_GL_MakeCurrent(win, gl);
-}
 
-HL_PRIM void HL_NAME(win_destroy)(SDL_Window *win, SDL_GLContext gl) {
-	SDL_DestroyWindow(win);
-	SDL_GL_DeleteContext(gl);
-}
 
 #define TGL _ABSTRACT(sdl_gl)
 DEFINE_PRIM(TWIN, win_create_ex, _I32 _I32 _I32 _I32 _I32);
-DEFINE_PRIM(TWIN, win_create, _I32 _I32);
-DEFINE_PRIM(TGL, win_get_glcontext, TWIN);
+DEFINE_PRIM(TWIN, win_create, _I32 _I32 _I32);
 DEFINE_PRIM(_BOOL, win_set_fullscreen, TWIN _I32);
 DEFINE_PRIM(_BOOL, win_set_display_mode, TWIN _I32 _I32 _I32);
 DEFINE_PRIM(_I32, win_display_handle, TWIN);
@@ -674,9 +548,7 @@ DEFINE_PRIM(_VOID, win_get_min_size, TWIN _REF(_I32) _REF(_I32));
 DEFINE_PRIM(_VOID, win_get_max_size, TWIN _REF(_I32) _REF(_I32));
 DEFINE_PRIM(_F64, win_get_opacity, TWIN);
 DEFINE_PRIM(_BOOL, win_set_opacity, TWIN _F64);
-DEFINE_PRIM(_VOID, win_swap_window, TWIN);
-DEFINE_PRIM(_VOID, win_render_to, TWIN TGL);
-DEFINE_PRIM(_VOID, win_destroy, TWIN TGL);
+
 
 // game controller
 

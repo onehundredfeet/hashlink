@@ -11,7 +11,7 @@ if(WIN32)
     set(CMAKE_SYSTEM_VERSION 10.0)
     project(hashlink C CXX) # C++ required for directx
 else()
-    project(hashlink C)
+    project(hashlink C CXX)
 endif()
 
 include(GNUInstallDirs)
@@ -137,13 +137,18 @@ set_target_properties(libhl
     COMPILE_DEFINITIONS "_USRDLL;LIBHL_EXPORTS"
 )
 
+if (NOT APPLE)
+set(PROFILE_SRC src/profile.c)
+endif()
+
+
 add_executable(hl
     src/code.c
     src/jit.c
     src/main.c
     src/module.c
     src/debugger.c
-    src/profile.c
+    ${PROFILE_SRC}
 )
 
 if (UNIX AND NOT APPLE)

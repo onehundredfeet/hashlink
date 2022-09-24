@@ -21,6 +21,8 @@ x64
 *.opendb
 *.VC.db
 .vs
+.vs
+*.DS_Store
 /hl
 /include/sdl
 /include/openal
@@ -54,3 +56,7 @@ node_modules
 /*.tgz
 args.txt
 /other/benchs/hlc
+.vscode
+src/.DS_Store
+src/std/.DS_Store
+libs/.DS_Store
