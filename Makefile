@@ -37,7 +37,7 @@ FMT_INCLUDE = -I include/mikktspace -I include/minimp3
 
 FMT = libs/fmt/fmt.o libs/fmt/sha1.o include/mikktspace/mikktspace.o libs/fmt/mikkt.o libs/fmt/dxt.o
 
-SDL = libs/sdl/sdl.o libs/sdl/gl.o
+SDL = libs/sdl/sdl.o libs/sdl/gl.o libs/sdl/sdl_gl.o
 
 OPENAL = libs/openal/openal.o
 

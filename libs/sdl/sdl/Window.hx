@@ -66,7 +66,7 @@ class Window {
 	public var opacity(get, set) : Float;
 	public var grab(get, set) : Bool;
 
-	public function new( title : String ) {
+	function new( title : String ) {
 
 		this.title = title;
 		windows.push(this);
