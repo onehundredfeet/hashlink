@@ -8,7 +8,7 @@
 #	include <SDL.h>
 #	include <SDL_syswm.h>
 #elif defined(HL_MAC)
-#	include <SDL.h>
+#	include <SDL2/SDL.h>
 #else
 #	include <SDL2/SDL.h>
 #endif

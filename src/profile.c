@@ -123,14 +123,6 @@ static void *get_thread_stackptr( thread_handle *t, void **eip ) {
 	*eip = (void*)shared_context.context.uc_mcontext.gregs[REG_EIP];
 	return (void*)shared_context.context.uc_mcontext.gregs[REG_ESP];
 #	endif
-#elif defined(HL_MAC)
-#	ifdef HL_64
-	*eip = (void*)shared_context.context.uc_mcontext.gregs[REG_RIP];
-	return (void*)shared_context.context.uc_mcontext.gregs[REG_RSP];
-#	else
-	*eip = (void*)shared_context.context.uc_mcontext.gregs[REG_EIP];
-	return (void*)shared_context.context.uc_mcontext.gregs[REG_ESP];
-#	endif
 #else
 	return NULL;
 #endif
@@ -156,7 +148,7 @@ static bool pause_thread( thread_handle *t, bool b ) {
 		ResumeThread(t->h);
 		return true;
 	}
-#elif defined(HL_LINUX) || defined(HL_MAC)
+#elif defined(HL_LINUX) 
 	if( b ) {
 		tgkill(getpid(), t->tid, SIGPROF);
 		return sem_wait(&shared_context.msg2) == 0;
