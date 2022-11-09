@@ -22,6 +22,10 @@
 #include <hl.h>
 #include <hlmodule.h>
 
+#ifdef HL_MAC
+#define HL_LINUX
+#endif
+
 #ifdef HL_LINUX
 #include <semaphore.h>
 #include <signal.h>
