@@ -22,11 +22,7 @@
 #include <hl.h>
 #include <hlmodule.h>
 
-#ifdef HL_MAC
-#define HL_LINUX
-#endif
-
-#ifdef HL_LINUX
+#if defined(HL_LINUX) || defined(HL_APPLE)
 #include <semaphore.h>
 #include <signal.h>
 #include <sys/syscall.h>
@@ -88,7 +84,7 @@ static struct {
 	profile_data *first_record;
 } data = {0};
 
-#ifdef HL_LINUX
+#if defined(HL_LINUX) || defined(HL_APPLE)
 static struct
 {
 	sem_t msg2;
@@ -127,6 +123,14 @@ static void *get_thread_stackptr( thread_handle *t, void **eip ) {
 	*eip = (void*)shared_context.context.uc_mcontext.gregs[REG_EIP];
 	return (void*)shared_context.context.uc_mcontext.gregs[REG_ESP];
 #	endif
+#elif defined(HL_MAC)
+#	ifdef HL_64
+	*eip = (void*)shared_context.context.uc_mcontext.gregs[REG_RIP];
+	return (void*)shared_context.context.uc_mcontext.gregs[REG_RSP];
+#	else
+	*eip = (void*)shared_context.context.uc_mcontext.gregs[REG_EIP];
+	return (void*)shared_context.context.uc_mcontext.gregs[REG_ESP];
+#	endif
 #else
 	return NULL;
 #endif
@@ -152,7 +156,7 @@ static bool pause_thread( thread_handle *t, bool b ) {
 		ResumeThread(t->h);
 		return true;
 	}
-#elif defined(HL_LINUX)
+#elif defined(HL_LINUX) || defined(HL_MAC)
 	if( b ) {
 		tgkill(getpid(), t->tid, SIGPROF);
 		return sem_wait(&shared_context.msg2) == 0;
