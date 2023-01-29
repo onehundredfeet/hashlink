@@ -73,9 +73,7 @@ static int_val gc_hash( void *ptr ) {
 #	define GC_MEMCHK
 #endif
 
-#if defined(HL_NX) || defined(HL_PS)
-#	define GC_INTERIOR_POINTERS
-#endif
+#define GC_INTERIOR_POINTERS
 
 #define out_of_memory(reason)		hl_fatal("Out of Memory (" reason ")")
 
@@ -241,6 +239,13 @@ static void gc_global_lock( bool lock ) {
 	}
 }
 #endif
+
+HL_PRIM void hl_global_lock( bool lock ) {
+	if( lock )
+		hl_mutex_acquire(gc_threads.exclusive_lock);
+	else
+		hl_mutex_release(gc_threads.exclusive_lock);
+}
 
 HL_PRIM void hl_add_root( void *r ) {
 	gc_global_lock(true);
@@ -470,6 +475,8 @@ void *hl_gc_alloc_gen( hl_type *t, int size, int flags ) {
 	int allocated = 0;
 	if( size == 0 )
 		return NULL;
+	if( size < 0 )
+		hl_error("Invalid allocation size");
 	gc_global_lock(true);
 	gc_check_mark();
 #	ifdef GC_MEMCHK
@@ -766,8 +773,10 @@ static void hl_gc_init() {
 	gc_stats.mark_bytes = 4; // prevent reading out of bmp
 	memset(&gc_threads,0,sizeof(gc_threads));
 	gc_threads.global_lock = hl_mutex_alloc(false);
+	gc_threads.exclusive_lock = hl_mutex_alloc(false);
 #	ifdef HL_THREADS
 	hl_add_root(&gc_threads.global_lock);
+	hl_add_root(&gc_threads.exclusive_lock);
 #	endif
 }
 
