@@ -229,13 +229,13 @@ int main(int argc, pchar *argv[]) {
 	cl.fun = ctx.m->functions_ptrs[ctx.m->code->entrypoint];
 	cl.hasValue = 0;
 	setup_handler();
-	#ifndef __APPLE__
+//	#ifndef __APPLE__
 	hl_profile_setup(profile_count);
-	#endif
+//	#endif
 	ctx.ret = hl_dyn_call_safe(&cl,NULL,0,&isExc);
-	#ifndef __APPLE__
+//	#ifndef __APPLE__
 	hl_profile_end();
-	#endif
+//	#endif
 	if( isExc ) {
 		varray *a = hl_exception_stack();
 		int i;

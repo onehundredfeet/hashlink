@@ -19,14 +19,25 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
-#include <hl.h>
-#include <hlmodule.h>
+#define _XOPEN_SOURCE
 
-#if defined(HL_LINUX) || defined(HL_APPLE)
+#include "hl.h"
+#include "hlmodule.h"
+
+#if defined(HL_LINUX) || defined(HL_APPLE) || defined(HL_MAC)
 #include <semaphore.h>
 #include <signal.h>
 #include <sys/syscall.h>
 #include <unistd.h>
+#endif
+
+#if defined(HL_MAC)
+#include <ucontext.h>
+#include <sys/stat.h>
+#include <mach/mach.h>
+#include <mach/mach_vm.h>
+#include <dlfcn.h>
+#include <objc/runtime.h>
 #endif
 
 #if defined(__GLIBC__)
@@ -53,6 +64,8 @@ struct _thread_handle {
 	int tid;
 #	ifdef HL_WIN_DESKTOP
 	HANDLE h;
+#elif defined(HL_MAC)
+	thread_read_t mach_thread;
 #	endif
 	hl_thread_info *inf;
 	char name[128];
@@ -84,7 +97,7 @@ static struct {
 	profile_data *first_record;
 } data = {0};
 
-#if defined(HL_LINUX) || defined(HL_APPLE)
+#if defined(HL_LINUX) 
 static struct
 {
 	sem_t msg2;
@@ -123,6 +136,31 @@ static void *get_thread_stackptr( thread_handle *t, void **eip ) {
 	*eip = (void*)shared_context.context.uc_mcontext.gregs[REG_EIP];
 	return (void*)shared_context.context.uc_mcontext.gregs[REG_ESP];
 #	endif
+#elif defined(HL_MAC)
+#	ifdef HL_64
+	//*eip = (void*)shared_context.context.uc_mcontext.gregs[REG_RIP];
+	//return (void*)shared_context.context.uc_mcontext.gregs[REG_RSP];
+//	ucontext_t *ptr = (ucontext_t *)(t->inf->ucontext);
+//	if (ptr != NULL) {
+		_STRUCT_MCONTEXT *mtx = t->inf->ucontextStorage.uc_mcontext;
+		if (mtx != NULL) {
+			_STRUCT_X86_THREAD_STATE64 *stx = &mtx->__ss;
+			if (stx != NULL) {
+				*eip = (void*)stx->__rip;
+				return (void*)stx->__rsp;
+				//return NULL;
+			}
+		}
+	//}
+	//printf("get_thread_stackptr: HL_MAC HL_64 %p : uc_context %p\n", t->inf->ucontext, ptr->uc_mcontext);
+	
+//	*eip = (void*)((ucontext_t *)(t->inf->ucontext))->uc_mcontext->__ss.__rip;
+//	return (void*)((ucontext_t *)(t->inf->ucontext))->uc_mcontext->__ss.__rsp;
+return NULL;
+#	else
+	*eip = uc->uc_mcontext->__ss.__eip;
+	return uc->uc_mcontext->__ss.__esp;
+#	endif
 #else
 	return NULL;
 #endif
@@ -131,6 +169,8 @@ static void *get_thread_stackptr( thread_handle *t, void **eip ) {
 static void thread_data_init( thread_handle *t ) {
 #ifdef HL_WIN
 	t->h = OpenThread(THREAD_ALL_ACCESS,FALSE, t->tid);
+#elif defined(HL_MAC)
+	t->mach_thread = t->inf->mach_thread_id;
 #endif
 }
 
@@ -156,12 +196,26 @@ static bool pause_thread( thread_handle *t, bool b ) {
 		sem_post(&shared_context.msg3);
 		return sem_wait(&shared_context.msg4) == 0;
 	}
+#elif defined(HL_MAC)
+	//kern_return_t thread_get_state(thread_read_t target_act, thread_state_flavor_t flavor, thread_state_t old_state, mach_msg_type_number_t *old_stateCnt);
+	if( b ) {
+		if( thread_suspend(t->inf->mach_thread_id) == KERN_SUCCESS) {
+			return true;
+		}
+		printf("Failed to suspend thread %d\n", t->inf->mach_thread_id);
+	} else {
+		if( thread_resume(t->inf->mach_thread_id) == KERN_SUCCESS) {
+			return true;
+		}
+	}
+	return false;
 #else
 	return false;
 #endif
 }
 
 static void record_data( void *ptr, int size ) {
+	
 	profile_data *r = data.record;
 	if( !r || r->currentPos + size > r->dataSize ) {
 		r = malloc(sizeof(profile_data));
@@ -190,7 +244,7 @@ static void read_thread_data( thread_handle *t ) {
 		return;
 	}
 
-#ifdef HL_LINUX
+#if defined(HL_LINUX) || defined(HL_MAC)
     int count = hl_module_capture_stack_range(t->inf->stack_top, stack, data.stackOut, MAX_STACK_COUNT);
     pause_thread(t, false);
 #else
@@ -294,17 +348,20 @@ static void hl_profile_loop( void *_ ) {
 	data.tmpMemory = NULL;
 	data.sample_count = 0;
 	data.stopLoop = false;
+
+	printf("HASHLINK Profiling stopped\n");
 }
 
 static void profile_event( int code, vbyte *data, int dataLen );
 
 void hl_profile_setup( int sample_count ) {
-#	if defined(HL_THREADS) && (defined(HL_WIN_DESKTOP) || defined(HL_LINUX))
+#	if defined(HL_THREADS) && (defined(HL_WIN_DESKTOP) || defined(HL_LINUX)|| defined(HL_MAC)) 
 	hl_setup_profiler(profile_event,hl_profile_end);
 	if( data.sample_count ) return;
 	if( sample_count < 0 ) {
 		// was not started with --profile : pause until we get start event
 		data.profiling_pause++;
+		printf("Profiling disabled\n");
 		return;
 	}
 	data.sample_count = sample_count;
@@ -317,6 +374,7 @@ void hl_profile_setup( int sample_count ) {
 	action.sa_flags = SA_SIGINFO;
 	sigaction(SIGPROF, &action, NULL);
 #	endif
+	printf("Profiling enabled (sample count=%d)\n", sample_count);
 	hl_thread_start(hl_profile_loop,NULL,false);
 #	endif
 }
@@ -355,6 +413,8 @@ static int write_names( thread_handle *h, FILE *f ) {
 }
 
 static void profile_dump() {
+	printf("Tring to dump profile %p\n", data.first_record);
+
 	if( !data.first_record ) return;
 
 	data.profiling_pause++;

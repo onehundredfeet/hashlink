@@ -190,6 +190,11 @@ static struct {
 #	define TIMESTAMP() 0
 #endif
 
+#ifdef HL_MAC
+#define _XOPEN_SOURCE
+#include <ucontext.h>
+#endif
+
 // -------------------------  ROOTS ----------------------------------------------------------
 
 static void ***gc_roots = NULL;
@@ -291,6 +296,13 @@ HL_API void hl_register_thread( void *stack_top ) {
 	hl_thread_info *t = (hl_thread_info*)malloc(sizeof(hl_thread_info));
 	memset(t, 0, sizeof(hl_thread_info));
 	t->thread_id = hl_thread_id();
+	#ifdef HL_MAC
+	t->mach_thread_id = mach_thread_self();
+	//t->ucontext = malloc(sizeof(ucontext_t));
+	getcontext(&t->ucontextStorage);
+	printf("Mac Thread %d\n", t->thread_id);
+	#endif
+
 	t->stack_top = stack_top;
 	t->flags = HL_TRACK_MASK << HL_TREAD_TRACK_SHIFT;
 	current_thread = t;

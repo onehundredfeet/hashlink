@@ -305,6 +305,8 @@ C_FUNCTION_END
 #	endif
 #elif defined(HL_MAC)
 #include <signal.h>
+#include <mach/mach.h>
+
 #	define hl_debug_break() \
 		if( hl_detect_debugger() ) \
 			raise(SIGTRAP);//__builtin_trap();
@@ -909,6 +911,11 @@ struct _hl_trap_ctx {
 
 typedef struct {
 	int thread_id;
+	#ifdef HL_MAC
+	thread_t mach_thread_id;
+//	void *ucontext;
+	ucontext_t ucontextStorage;
+	#endif
 	// gc vars
 	volatile int gc_blocking;
 	void *stack_top;
