@@ -19,14 +19,8 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
-#include "hl.h"
-#ifdef HL_MAC
-#include "hucontext.h"
-#endif
+#include <hl.h>
 
-#if HL_HEADER_DEBUG_VERSION != 0x55
-#error "HL header version mismatch"
-#endif
 #ifdef HL_WIN
 #	include <windows.h>
 #else
