@@ -19,7 +19,10 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
-#include <hl.h>
+#include "hl.h"
+#if HL_HEADER_DEBUG_VERSION != 0x55
+#error "HL header version mismatch"
+#endif
 #include <hlmodule.h>
 
 #ifdef HL_WIN
@@ -141,6 +144,19 @@ int hl_module_capture_stack_range( void *stack_top, void **stack_ptr, void **out
 			code += s;
 			code_size -= s;
 		}
+		if (stack_ptr == NULL || stack_top == NULL) {
+			printf("stack_ptr is %p stack_top %p\n", stack_ptr, stack_top);
+			exit(-1);
+		} else {
+			if (stack_ptr > (void**)stack_top) {
+				printf("stack_ptr greater is %p stack_top %p\n", stack_ptr, stack_ptr);
+				exit(-1);
+			}
+		}
+		if (stack_ptr == stack_top) {
+			printf("stack_ptr = stack_top %p\n", stack_top);
+			exit(-1);
+		}
 		while( stack_ptr < (void**)stack_top ) {
 #if defined(HL_64) && defined(HL_WIN)
 			void *module_addr = *stack_ptr++; // EIP
@@ -152,10 +168,15 @@ int hl_module_capture_stack_range( void *stack_top, void **stack_ptr, void **out
 					count++;
 			}
 #else
-			void *stack_addr = *stack_ptr++; // EBP
-			if( stack_addr > stack_bottom && stack_addr < stack_top ) {
-				void *module_addr = *stack_ptr; // EIP
+			//void *stack_addr = *stack_ptr++; // EBP
+//			printf("\t\t\tstack_addr %p stack_bottom %p stack_top %p\n", stack_addr, stack_bottom, stack_top);
+//			printf("\t\t\tstack_addr > stack_bottom %d\n", stack_addr > stack_bottom ? 1 : 0);
+//			printf("\t\t\tstack_addr < stack_top %d\n", stack_addr < stack_top ? 1 : 0);
+			//if( stack_addr > stack_bottom && stack_addr < stack_top ) {
+				void *module_addr = *stack_ptr++; // EIP
+				//printf("\t\t\tmodule_addr %p code %p code size %d module_addr >= (void*)code %d module_addr < (void*)(code + code_size) %d\n", module_addr, code, code_size, module_addr >= (void*)code ? 1 : 0, module_addr < (void*)(code + code_size) ? 1 : 0);
 				if( module_addr >= (void*)code && module_addr < (void*)(code + code_size) ) {
+					//printf("Incrementing count %d\n", count);
 					if( out ) {
 						if( count == size ) break;
 						out[count++] = module_addr;
@@ -163,9 +184,13 @@ int hl_module_capture_stack_range( void *stack_top, void **stack_ptr, void **out
 						count++;
 					}
 				}
-			}
+			//}
 #endif
 		}
+		if (count > 0) {
+			//printf("count = %d %p %p\n", count, stack_ptr, stack_top);
+		}
+		
 	} else {
 		while( stack_ptr < (void**)stack_top ) {
 #if defined(HL_64) && defined(HL_WIN)
@@ -559,6 +584,7 @@ static void hl_module_init_constant( hl_module *m, hl_constant *c ) {
 }
 
 static void hl_module_add( hl_module *m ) {
+	printf("adding module has debug %s\n", m->code->hasdebug ? "true" : "false");
 	hl_module **old_modules = cur_modules;
 	hl_module **new_modules = (hl_module**)malloc(sizeof(void*)*(modules_count + 1));
 	memcpy(new_modules, old_modules, sizeof(void*)*modules_count);
@@ -569,6 +595,7 @@ static void hl_module_add( hl_module *m ) {
 }
 
 int hl_module_init( hl_module *m, h_bool hot_reload ) {
+	printf("Initializing module\n");
 	int i;
 	jit_ctx *ctx;
 	// expand globals

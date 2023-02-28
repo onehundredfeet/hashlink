@@ -22,6 +22,7 @@
 #ifndef HL_H
 #define HL_H
 
+
 /**
 	Detailed documentation can be found here:
 	https://github.com/HaxeFoundation/hashlink/wiki/
@@ -46,6 +47,12 @@
 #define HL_MAC
 #endif
 #endif
+#ifdef HL_MAC
+#define HL_HEADER_DEBUG_VERSION	0x55
+#endif
+
+
+
 
 #ifdef __ANDROID__
 #	define HL_ANDROID
@@ -911,28 +918,47 @@ struct _hl_trap_ctx {
 
 typedef struct {
 	int thread_id;
-	#ifdef HL_MAC
-	thread_t mach_thread_id;
-//	void *ucontext;
-	ucontext_t ucontextStorage;
-	#endif
+	int check1;
 	// gc vars
 	volatile int gc_blocking;
+	int check2;
 	void *stack_top;
+	int check3;
 	void *stack_cur;
+	int check4;
 	// exception handling
 	hl_trap_ctx *trap_current;
+	int check5;
 	hl_trap_ctx *trap_uncaught;
+	int check6;
 	vclosure *exc_handler;
+	int check7;
 	vdynamic *exc_value;
+	int check8;
 	int flags;
+	int check9;
 	int exc_stack_count;
+	int check10;
 	// extra
+	int check11;
 	char thread_name[128];
+	int check12;
 	jmp_buf gc_regs;
+	int check13;
 	void *exc_stack_trace[HL_EXC_MAX_STACK];
+	int check14;
 	void *extra_stack_data[HL_MAX_EXTRA_STACK];
+	int check15;
 	int extra_stack_size;
+	int check16;
+	#ifdef HL_MAC
+	thread_t mach_thread_id;
+	int check17;
+	void * ucontext;
+	int check18;
+	#else
+	#error "huh?"
+	#endif
 } hl_thread_info;
 
 typedef struct {

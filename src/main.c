@@ -20,6 +20,9 @@
  * DEALINGS IN THE SOFTWARE.
  */
 #include <hl.h>
+#if HL_HEADER_DEBUG_VERSION != 0x55
+#error "HL header version mismatch"
+#endif
 #include <hlmodule.h>
 
 #ifdef HL_WIN
@@ -60,6 +63,15 @@ static int pfiletime( pchar *file )	{
 #endif
 }
 
+static void printThreadInfos(const char *name) {
+	hl_threads_info *threads = hl_gc_threads_info();
+	int i;
+	for(i=0;i<threads->count;i++) {
+		printf("Step %s Current thread %d [%d] with stack top %p\n", name, i, threads->threads[i]->thread_id, threads->threads[i]->stack_top); 
+	}
+
+
+}
 static hl_code *load_code( const pchar *file, char **error_msg, bool print_errors ) {
 	hl_code *code;
 	FILE *f = pfopen(file,"rb");
@@ -205,31 +217,41 @@ int main(int argc, pchar *argv[]) {
 	hl_global_init();
 	hl_sys_init((void**)argv,argc,file);
 	hl_register_thread(&ctx);
+//	printThreadInfos("A");
+
 	ctx.file = file;
 	ctx.code = load_code(file, &error_msg, true);
 	if( ctx.code == NULL ) {
 		if( error_msg ) printf("%s\n", error_msg);
 		return 1;
 	}
+	//printThreadInfos("B");
 	ctx.m = hl_module_alloc(ctx.code);
 	if( ctx.m == NULL )
 		return 2;
 	if( !hl_module_init(ctx.m,hot_reload) )
 		return 3;
+	//printThreadInfos("C");
 	if( hot_reload ) {
 		ctx.file_time = pfiletime(ctx.file);
 		hl_setup_reload_check(check_reload,&ctx);
 	}
+	//printThreadInfos("D");
 	hl_code_free(ctx.code);
 	if( debug_port > 0 && !hl_module_debug(ctx.m,debug_port,debug_wait) ) {
 		fprintf(stderr,"Could not start debugger on port %d",debug_port);
 		return 4;
 	}
+	//printThreadInfos("E");
 	cl.t = ctx.code->functions[ctx.m->functions_indexes[ctx.m->code->entrypoint]].type;
 	cl.fun = ctx.m->functions_ptrs[ctx.m->code->entrypoint];
 	cl.hasValue = 0;
+	//printThreadInfos("F");
 	setup_handler();
+	//printThreadInfos("G");
+	
 //	#ifndef __APPLE__
+	//printThreadInfos("H");
 	hl_profile_setup(profile_count);
 //	#endif
 	ctx.ret = hl_dyn_call_safe(&cl,NULL,0,&isExc);

@@ -19,9 +19,15 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
-#define _XOPEN_SOURCE
+
+#include <execinfo.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "hl.h"
+#if HL_HEADER_DEBUG_VERSION != 0x55
+#error "HL header version mismatch"
+#endif
 #include "hlmodule.h"
 
 #if defined(HL_LINUX) || defined(HL_APPLE) || defined(HL_MAC)
@@ -32,12 +38,13 @@
 #endif
 
 #if defined(HL_MAC)
-#include <ucontext.h>
+
 #include <sys/stat.h>
 #include <mach/mach.h>
 #include <mach/mach_vm.h>
 #include <dlfcn.h>
 #include <objc/runtime.h>
+#include <dispatch/dispatch.h>
 #endif
 
 #if defined(__GLIBC__)
@@ -116,6 +123,49 @@ static void sigprof_handler(int sig, siginfo_t *info, void *ucontext)
 }
 #endif
 
+#if defined(HL_MAC) 
+static struct
+{
+	dispatch_semaphore_t msg2;
+	dispatch_semaphore_t  msg3;
+	dispatch_semaphore_t  msg4;
+	ucontext_t context;
+	int done;
+
+} shared_context;
+
+static void sigprof_handler(int sig, siginfo_t *info, void *ucontext)
+{
+	ucontext_t *ctx = ucontext;
+	shared_context.context = *ctx;
+	shared_context.done = 1;
+//	printf("SIGNALED\n");
+//	fflush(stdout);
+	dispatch_semaphore_signal(shared_context.msg2);
+	dispatch_semaphore_wait(shared_context.msg3, DISPATCH_TIME_FOREVER);
+	dispatch_semaphore_signal(shared_context.msg4);
+}
+#endif
+
+#define     REG_RAX     1
+#define     REG_RBX     2
+#define     REG_RCX     3
+#define     REG_RDX     4
+#define     REG_RDI     5
+#define     REG_RSI     6
+#define     REG_RBP     7
+#define     REG_RSP     8
+#define     REG_R8      9
+#define     REG_R9      10
+#define     REG_R10     11
+#define     REG_R11     12
+#define     REG_R12     13
+#define     REG_R13     14
+#define     REG_R14     15
+#define     REG_R15     16
+#define     REG_RIP     17
+#define     REG_RFLAGS  18
+
 static void *get_thread_stackptr( thread_handle *t, void **eip ) {
 #ifdef HL_WIN_DESKTOP
 	CONTEXT c;
@@ -138,25 +188,38 @@ static void *get_thread_stackptr( thread_handle *t, void **eip ) {
 #	endif
 #elif defined(HL_MAC)
 #	ifdef HL_64
+	if (shared_context.done != 1) {
+		return NULL;
+	}
+	struct __darwin_mcontext64 *mcontext = shared_context.context.uc_mcontext;
+	void *ptr = mcontext;
+
+	if (ptr == NULL) {
+		 return NULL;
+	} else {
+		//printf("Shared context was updated! %d %p\n", shared_context.done, mcontext);
+		//fflush(stdout);
+		*eip = (void*)mcontext->__ss.__rip;
+		void *ret = (void*)mcontext->__ss.__rsp;
+		return ret;
+
+	}
+	return NULL;
+//	return ret;
+
 	//*eip = (void*)shared_context.context.uc_mcontext.gregs[REG_RIP];
 	//return (void*)shared_context.context.uc_mcontext.gregs[REG_RSP];
+	//return HUContext_getStackPointers(t->inf->ucontext, eip);
 //	ucontext_t *ptr = (ucontext_t *)(t->inf->ucontext);
+//	ptr->uc_mcontext->__ss.__rip;
+//	ptr->uc_mcontext->__ss.__rsp;
+
 //	if (ptr != NULL) {
-		_STRUCT_MCONTEXT *mtx = t->inf->ucontextStorage.uc_mcontext;
-		if (mtx != NULL) {
-			_STRUCT_X86_THREAD_STATE64 *stx = &mtx->__ss;
-			if (stx != NULL) {
-				*eip = (void*)stx->__rip;
-				return (void*)stx->__rsp;
-				//return NULL;
-			}
-		}
 	//}
 	//printf("get_thread_stackptr: HL_MAC HL_64 %p : uc_context %p\n", t->inf->ucontext, ptr->uc_mcontext);
 	
-//	*eip = (void*)((ucontext_t *)(t->inf->ucontext))->uc_mcontext->__ss.__rip;
-//	return (void*)((ucontext_t *)(t->inf->ucontext))->uc_mcontext->__ss.__rsp;
-return NULL;
+	//*eip = (void*)((ucontext_t *)(t->inf->ucontext))->uc_mcontext->__ss.__rip;
+	//return (void*)((ucontext_t *)(t->inf->ucontext))->uc_mcontext->__ss.__rsp;
 #	else
 	*eip = uc->uc_mcontext->__ss.__eip;
 	return uc->uc_mcontext->__ss.__esp;
@@ -165,7 +228,15 @@ return NULL;
 	return NULL;
 #endif
 }
+static void printThreadInfos(const char *name) {
+	hl_threads_info *threads = hl_gc_threads_info();
+	int i;
+	for(i=0;i<threads->count;i++) {
+		printf("Step %s Current thread %d [%d] with stack top %p\n", name, i, threads->threads[i]->thread_id, threads->threads[i]->stack_top); 
+	}
 
+
+}
 static void thread_data_init( thread_handle *t ) {
 #ifdef HL_WIN
 	t->h = OpenThread(THREAD_ALL_ACCESS,FALSE, t->tid);
@@ -199,14 +270,25 @@ static bool pause_thread( thread_handle *t, bool b ) {
 #elif defined(HL_MAC)
 	//kern_return_t thread_get_state(thread_read_t target_act, thread_state_flavor_t flavor, thread_state_t old_state, mach_msg_type_number_t *old_stateCnt);
 	if( b ) {
+		pthread_kill( t->inf->ucontext, SIGPROF);
+		return dispatch_semaphore_wait(shared_context.msg2, DISPATCH_TIME_FOREVER) == 0;
+		
+		/*
 		if( thread_suspend(t->inf->mach_thread_id) == KERN_SUCCESS) {
+			fflush(stdout);
 			return true;
 		}
 		printf("Failed to suspend thread %d\n", t->inf->mach_thread_id);
+		*/
 	} else {
+		dispatch_semaphore_signal(shared_context.msg3);
+		return dispatch_semaphore_wait(shared_context.msg4, DISPATCH_TIME_FOREVER) == 0;
+
+		/*
 		if( thread_resume(t->inf->mach_thread_id) == KERN_SUCCESS) {
 			return true;
 		}
+		*/
 	}
 	return false;
 #else
@@ -228,25 +310,85 @@ static void record_data( void *ptr, int size ) {
 		else
 			data.first_record = r;
 		data.record = r;
-		fflush(stdout);
+//		fflush(stdout);
 	}
 	memcpy(r->data + r->currentPos, ptr, size);
 	r->currentPos += size;
 }
+static void
+print_trace (void)
+{
+  void *array[10];
+  char **strings;
+  int size, i;
 
-static void read_thread_data( thread_handle *t ) {
-	if( !pause_thread(t,true) )
+  size = backtrace (array, 10);
+  strings = backtrace_symbols (array, size);
+  if (strings != NULL)
+  {
+
+    printf ("Obtained %d stack frames.\n", size);
+    for (i = 0; i < size; i++)
+      printf ("%s\n", strings[i]);
+  }
+
+  free (strings);
+}
+
+static void checkThread(  hl_thread_info *t ) {
+	if (t->check1 != 1001001) { printf("check1 failed %x id %d\n)", t->check1, t->thread_id); print_trace(); exit(-1);}
+	if (t->check2 != 1001002) { printf("check2 failed %x id %d\n)", t->check2, t->thread_id); print_trace(); exit(-1);}
+	if (t->check3 != 1001003) { printf("check3 failed %x id %d\n)", t->check3, t->thread_id); print_trace(); exit(-1);}
+	if (t->check4 != 1001004) { printf("check4 failed %x id %d\n)", t->check4, t->thread_id); print_trace(); exit(-1);}
+	if (t->check5 != 1001005) { printf("check5 failed %x id %d\n)", t->check5, t->thread_id); print_trace(); exit(-1);}
+	if (t->check6 != 1001006) { printf("check6 failed %x id %d\n)", t->check6, t->thread_id); print_trace(); exit(-1);}
+	if (t->check7 != 1001007) { printf("check7 failed %x id %d\n)", t->check7, t->thread_id); print_trace(); exit(-1);}
+	if (t->check8 != 1001008) { printf("check8 failed %x id %d\n)", t->check8, t->thread_id); print_trace(); exit(-1);}
+	if (t->check9 != 1001009) { printf("check9 failed %x id %d\n)", t->check9, t->thread_id); print_trace(); exit(-1);}
+	if (t->check10 != 10010010) { printf("check10 failed %x id %d\n)", t->check10, t->thread_id); print_trace(); exit(-1);}
+	if (t->check11 != 10010011) { printf("check11 failed %x id %d\n)", t->check11, t->thread_id); print_trace(); exit(-1);}
+	if (t->check12 != 10010012) { printf("check12 failed %x id %d\n)", t->check12, t->thread_id); print_trace(); exit(-1);}
+	if (t->check13 != 10010013) { printf("check13 failed %x id %d\n)", t->check13, t->thread_id); print_trace(); exit(-1);}
+	if (t->check14 != 10010014) { printf("check14 failed %x id %d\n)", t->check14, t->thread_id); print_trace(); exit(-1);}
+	if (t->check15 != 10010015) { printf("check15 failed %x id %d\n)", t->check15, t->thread_id); print_trace(); exit(-1);}
+	if (t->check16 != 10010016) { printf("check16 failed %x id %d\n)", t->check16, t->thread_id); print_trace(); exit(-1);}
+	if (t->check17 != 10010017) { printf("check17 failed %x id %d\n)", t->check17, t->thread_id); print_trace(); exit(-1);}
+	if (t->check18 != 10010018) { printf("check18 failed %x id %d\n)", t->check18, t->thread_id); print_trace(); exit(-1);}
+}
+
+static void read_thread_data( thread_handle *t, int tidx ) {
+	checkThread(t->inf);
+	//printf("Reading thread...\n");
+//	fflush(stdout);
+	shared_context.done = 0;
+
+	if( !pause_thread(t,true) ) {
 		return;
-	void *eip;
+	}
+	//printf("Getting pointer...\n");
+//	fflush(stdout);
+	void *eip = NULL;
 	void *stack = get_thread_stackptr(t,&eip);
+	//if (tidx == 0) printf("tid %d stack pointer %p\n", t->tid, stack);
+	shared_context.done = 0;
+
 	if( !stack ) {
 		pause_thread(t,false);
+		printf("Couldn't get stack pointer\n");
 		return;
 	}
 
 #if defined(HL_LINUX) || defined(HL_MAC)
+	if (t->inf->stack_top == NULL) {
+		printf("Stack top is NULL on thread '%s' id:%d '%s' \n", t->name, t->tid, t->inf->thread_name);
+		exit(-1);
+	}
     int count = hl_module_capture_stack_range(t->inf->stack_top, stack, data.stackOut, MAX_STACK_COUNT);
+//	printf("\t\t\tStack count %d\n", count);
     pause_thread(t, false);
+	if (count > 0) {
+		//printf("Stack count %d\n", count);
+	}
 #else
 	int size = (int)((unsigned char*)t->inf->stack_top - (unsigned char*)stack);
 	if( size > MAX_STACK_SIZE-32 ) size = MAX_STACK_SIZE-32;
@@ -259,6 +401,7 @@ static void read_thread_data( thread_handle *t ) {
 	int count = hl_module_capture_stack_range((char*)data.tmpMemory+size, (void**)data.tmpMemory, data.stackOut, MAX_STACK_COUNT);
 #endif
 	int eventId = count | 0x80000000;
+//	printf("eventId %d count %d\n", eventId, count);
 	double time = hl_sys_time();
 	hl_threads_info *gc = hl_gc_threads_info();
 	if( gc->stopping_world ) eventId |= 0x40000000;
@@ -271,9 +414,16 @@ static void read_thread_data( thread_handle *t ) {
 }
 
 static void hl_profile_loop( void *_ ) {
-	double wait_time = 1. / data.sample_count;
+	double wait_time = 10. / data.sample_count;
 	double next = hl_sys_time();
 	data.tmpMemory = malloc(MAX_STACK_SIZE);
+
+	hl_threads_info *threads = hl_gc_threads_info();
+	int i;
+	for(i=0;i<threads->count;i++) {
+		//printf("Current thread %d [%d] with stack top %p\n", i, threads->threads[i]->thread_id, threads->threads[i]->stack_top); 
+	}
+
 	while( !data.stopLoop ) {
 		double t = hl_sys_time();
 		if( t < next || data.profiling_pause ) {
@@ -285,11 +435,15 @@ static void hl_profile_loop( void *_ ) {
 		int i;
 		thread_handle *prev = NULL;
 		thread_handle *cur = data.handles;
+		//printf("Examining %d threads\n", threads->count);
+		//fflush(stdout);
 		for(i=0;i<threads->count;i++) {
 			hl_thread_info *t = threads->threads[i];
+			//printf("\tExamining thread %d [%d] with stack top %p invisible %d\n", i, t->thread_id, t->stack_top, t->flags & HL_THREAD_INVISIBLE ? 1 : 0);
 			if( t->flags & HL_THREAD_INVISIBLE ) continue;
-
+			checkThread(t);
 			if( !cur || cur->tid != t->thread_id ) {
+//				printf("\t\tHave we lost a thread?\n");
 				// have we lost a thread ?
 				thread_handle *h = cur;
 				thread_handle *hprev = prev;
@@ -315,18 +469,25 @@ static void hl_profile_loop( void *_ ) {
 					h = h->next;
 				}
 				if( !h ) {
+					//printf("\t\tAllocating handle\n");
 					h = malloc(sizeof(thread_handle));
 					memset(h,0,sizeof(thread_handle));
 					h->tid = t->thread_id;
 					h->inf = t;
+					if (t->stack_top == NULL) {
+						printf("Stack top of %p is NULL on creation on thread '%s' id:%d '%s' \n", t, h->name, h->tid, h->inf->thread_name);
+						exit(-1);
+					}
 					thread_data_init(h);
 					h->next = cur;
 					cur = h;
 					if( prev == NULL ) data.handles = h; else prev->next = h;
 				}
 			}
-			if( (t->flags & HL_THREAD_PROFILER_PAUSED) == 0 )
-				read_thread_data(cur);
+			if( (t->flags & HL_THREAD_PROFILER_PAUSED) == 0 ) {
+				//printf("\t\tProfiling thread %d [%d] with stack top %p\n", i, t->thread_id, t->stack_top);
+				read_thread_data(cur,i);
+			}
 			prev = cur;
 			cur = cur->next;
 		}
@@ -355,8 +516,11 @@ static void hl_profile_loop( void *_ ) {
 static void profile_event( int code, vbyte *data, int dataLen );
 
 void hl_profile_setup( int sample_count ) {
+	//printThreadInfos("PA");
 #	if defined(HL_THREADS) && (defined(HL_WIN_DESKTOP) || defined(HL_LINUX)|| defined(HL_MAC)) 
 	hl_setup_profiler(profile_event,hl_profile_end);
+	//printThreadInfos("PB");
+
 	if( data.sample_count ) return;
 	if( sample_count < 0 ) {
 		// was not started with --profile : pause until we get start event
@@ -365,7 +529,7 @@ void hl_profile_setup( int sample_count ) {
 		return;
 	}
 	data.sample_count = sample_count;
-#	ifdef HL_LINUX
+#	if defined(HL_LINUX) // || defined(HL_MAC)
 	sem_init(&shared_context.msg2, 0, 0);
 	sem_init(&shared_context.msg3, 0, 0);
 	sem_init(&shared_context.msg4, 0, 0);
@@ -374,9 +538,25 @@ void hl_profile_setup( int sample_count ) {
 	action.sa_flags = SA_SIGINFO;
 	sigaction(SIGPROF, &action, NULL);
 #	endif
+#	if defined(HL_MAC)
+	shared_context.context.uc_mcontext = NULL;
+	shared_context.done = 0;
+	shared_context.msg2 = dispatch_semaphore_create(0);
+	shared_context.msg3 = dispatch_semaphore_create(0);
+	shared_context.msg4 = dispatch_semaphore_create(0);
+
+
+	struct sigaction action = {0};
+	action.sa_sigaction = sigprof_handler;
+	action.sa_flags = SA_SIGINFO;
+	sigaction(SIGPROF, &action, NULL);
+#	endif
+
+	//printThreadInfos("PC");
 	printf("Profiling enabled (sample count=%d)\n", sample_count);
 	hl_thread_start(hl_profile_loop,NULL,false);
 #	endif
+	//printThreadInfos("PD");
 }
 
 static bool read_profile_data( profile_reader *r, void *ptr, int size ) {
@@ -418,7 +598,7 @@ static void profile_dump() {
 	if( !data.first_record ) return;
 
 	data.profiling_pause++;
-	printf("Writing profiling data...\n");
+//	printf("Writing profiling data...\n");
 	fflush(stdout);
 
 	FILE *f = fopen("hlprofile.dump","wb");
@@ -430,18 +610,26 @@ static void profile_dump() {
 	r.r = data.first_record;
 	r.pos = 0;
 	int samples = 0;
+//	printf("Writing profiling data... with version %x \n", version);
 	while( true ) {
 		double time;
 		int i, tid, eventId;
+//		printf('Reading.... \n');
+//printf('Reading.... \n');
 		if( !read_profile_data(&r,&time, sizeof(double)) ) break;
 		read_profile_data(&r,&tid,sizeof(int));
 		read_profile_data(&r,&eventId,sizeof(int));
 		fwrite(&time,1,8,f);
 		fwrite(&tid,1,4,f);
 		fwrite(&eventId,1,4,f);
+//		printf('Profile data event id %d\n', eventId);
+
 		if( eventId < 0 ) {
 			int count = eventId & 0x3FFFFFFF;
 			read_profile_data(&r,data.stackOut,sizeof(void*)*count);
+			//if (count > 0) printf("Reading %d\n", count);
+			//fflush(stdout);
+
 			for(i=0;i<count;i++) {
 				uchar outStr[256];
 				int outSize = 256;
@@ -463,6 +651,9 @@ static void profile_dump() {
 		} else {
 			int size;
 			read_profile_data(&r,&size, sizeof(int));
+			if (size > 0) printf("size %d\n", size);
+			fflush(stdout);
+
 			fwrite(&size,1,4,f);
 			while( size ) {
 				int k = size > MAX_STACK_SIZE ? MAX_STACK_SIZE : size;
