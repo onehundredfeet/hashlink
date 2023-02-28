@@ -180,35 +180,14 @@ static void *get_thread_stackptr( thread_handle *t, void **eip ) {
 #elif defined(HL_MAC)
 #	ifdef HL_64
 	struct __darwin_mcontext64 *mcontext = shared_context.context.uc_mcontext;
-	void *ptr = mcontext;
-
-	if (ptr == NULL) {
-		 return NULL;
-	} else {
+	if (mcontext != NULL) {
 		*eip = (void*)mcontext->__ss.__rip;
 		void *ret = (void*)mcontext->__ss.__rsp;
 		return ret;
-
 	}
 	return NULL;
-//	return ret;
-
-	//*eip = (void*)shared_context.context.uc_mcontext.gregs[REG_RIP];
-	//return (void*)shared_context.context.uc_mcontext.gregs[REG_RSP];
-	//return HUContext_getStackPointers(t->inf->ucontext, eip);
-//	ucontext_t *ptr = (ucontext_t *)(t->inf->ucontext);
-//	ptr->uc_mcontext->__ss.__rip;
-//	ptr->uc_mcontext->__ss.__rsp;
-
-//	if (ptr != NULL) {
-	//}
-	//printf("get_thread_stackptr: HL_MAC HL_64 %p : uc_context %p\n", t->inf->ucontext, ptr->uc_mcontext);
-	
-	//*eip = (void*)((ucontext_t *)(t->inf->ucontext))->uc_mcontext->__ss.__rip;
-	//return (void*)((ucontext_t *)(t->inf->ucontext))->uc_mcontext->__ss.__rsp;
 #	else
-	*eip = uc->uc_mcontext->__ss.__eip;
-	return uc->uc_mcontext->__ss.__esp;
+	return NULL;
 #	endif
 #else
 	return NULL;
