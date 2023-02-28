@@ -463,7 +463,7 @@ void hl_profile_setup( int sample_count ) {
 		return;
 	}
 	data.sample_count = sample_count;
-#	if defined(HL_LINUX) // || defined(HL_MAC)
+#	if defined(HL_LINUX)
 	sem_init(&shared_context.msg2, 0, 0);
 	sem_init(&shared_context.msg3, 0, 0);
 	sem_init(&shared_context.msg4, 0, 0);
@@ -471,8 +471,7 @@ void hl_profile_setup( int sample_count ) {
 	action.sa_sigaction = sigprof_handler;
 	action.sa_flags = SA_SIGINFO;
 	sigaction(SIGPROF, &action, NULL);
-#	endif
-#	if defined(HL_MAC)
+#	elif defined(HL_MAC)
 	shared_context.context.uc_mcontext = NULL;
 	shared_context.msg2 = dispatch_semaphore_create(0);
 	shared_context.msg3 = dispatch_semaphore_create(0);
