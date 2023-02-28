@@ -593,7 +593,7 @@ static int write_names( thread_handle *h, FILE *f ) {
 }
 
 static void profile_dump() {
-	printf("Tring to dump profile %p\n", data.first_record);
+	//printf("Tring to dump profile %p\n", data.first_record);
 
 	if( !data.first_record ) return;
 

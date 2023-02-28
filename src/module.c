@@ -584,7 +584,7 @@ static void hl_module_init_constant( hl_module *m, hl_constant *c ) {
 }
 
 static void hl_module_add( hl_module *m ) {
-	printf("adding module has debug %s\n", m->code->hasdebug ? "true" : "false");
+	//printf("adding module has debug %s\n", m->code->hasdebug ? "true" : "false");
 	hl_module **old_modules = cur_modules;
 	hl_module **new_modules = (hl_module**)malloc(sizeof(void*)*(modules_count + 1));
 	memcpy(new_modules, old_modules, sizeof(void*)*modules_count);
@@ -595,7 +595,7 @@ static void hl_module_add( hl_module *m ) {
 }
 
 int hl_module_init( hl_module *m, h_bool hot_reload ) {
-	printf("Initializing module\n");
+	//printf("Initializing module\n");
 	int i;
 	jit_ctx *ctx;
 	// expand globals
