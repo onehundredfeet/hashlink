@@ -169,26 +169,6 @@ static hl_threads_info gc_threads;
 
 HL_THREAD_STATIC_VAR hl_thread_info *current_thread;
 
-static void checkThread(  hl_thread_info *t ) {
-	if (t->check1 != 1001001) { printf("check1 failed\n)"); exit(-1);}
-	if (t->check2 != 1001002) { printf("check2 failed\n)"); exit(-1);}
-	if (t->check3 != 1001003) { printf("check3 failed\n)"); exit(-1);}
-	if (t->check4 != 1001004) { printf("check4 failed\n)"); exit(-1);}
-	if (t->check5 != 1001005) { printf("check5 failed\n)"); exit(-1);}
-	if (t->check6 != 1001006) { printf("check6 failed\n)"); exit(-1);}
-	if (t->check7 != 1001007) { printf("check7 failed\n)"); exit(-1);}
-	if (t->check8 != 1001008) { printf("check8 failed\n)"); exit(-1);}
-	if (t->check9 != 1001009) { printf("check9 failed\n)"); exit(-1);}
-	if (t->check10 != 10010010) { printf("check10 failed\n)"); exit(-1);}
-	if (t->check11 != 10010011) { printf("check11 failed\n)"); exit(-1);}
-	if (t->check12 != 10010012) { printf("check12 failed\n)"); exit(-1);}
-	if (t->check13 != 10010013) { printf("check13 failed\n)"); exit(-1);}
-	if (t->check14 != 10010014) { printf("check14 failed\n)"); exit(-1);}
-	if (t->check15 != 10010015) { printf("check15 failed\n)"); exit(-1);}
-	if (t->check16 != 10010016) { printf("check16 failed\n)"); exit(-1);}
-	if (t->check17 != 10010017) { printf("check17 failed\n)"); exit(-1);}
-	if (t->check18 != 10010018) { printf("check18 failed\n)"); exit(-1);}
-}
 
 static struct {
 	int64 total_requested;
@@ -232,7 +212,6 @@ HL_API hl_thread_info *hl_get_thread() {
 static void gc_save_context(hl_thread_info *t, void *prev_stack ) {
 	void *stack_cur = &t;
 	setjmp(t->gc_regs);
-	checkThread(t);
 	// some compilers (such as clang) might push/pop some callee registers in call
 	// to gc_save_context (or before) which might hold a gc value !
 	// let's capture them immediately in extra per-thread data
@@ -313,27 +292,6 @@ HL_PRIM gc_pheader *hl_gc_get_page( void *v ) {
 // -------------------------  THREADS ----------------------------------------------------------
 
 HL_API int hl_thread_id();
-static void setThreadCheck( hl_thread_info *t)  {
-	t->check1 = 1001001;
-	t->check2 = 1001002;
-	t->check3 = 1001003;
-	t->check4 = 1001004;
-	t->check5 = 1001005;
-	t->check6 = 1001006;
-	t->check7 = 1001007;
-	t->check8 = 1001008;
-	t->check9 = 1001009;
-	t->check10 = 10010010;
-	t->check11 = 10010011;
-	t->check12 = 10010012;
-	t->check13 = 10010013;
-	t->check14 = 10010014;
-	t->check15 = 10010015;
-	t->check16 = 10010016;
-	t->check17 = 10010017;
-	t->check18 = 10010018;
-}
-
 
 HL_API void hl_register_thread( void *stack_top ) {
 	if( hl_get_thread() )
@@ -341,14 +299,10 @@ HL_API void hl_register_thread( void *stack_top ) {
 
 	hl_thread_info *t = (hl_thread_info*)malloc(sizeof(hl_thread_info));
 	memset(t, 0, sizeof(hl_thread_info));
-	setThreadCheck(t);
-	checkThread(t);
 	t->thread_id = hl_thread_id();
 	#ifdef HL_MAC
 	t->mach_thread_id = mach_thread_self();
-	t->ucontext = hl_thread_current();// HUContext_create();
-//	getcontext(&t->ucontextStorage);
-//	printf("Mac Thread %d with top %p\n", t->thread_id, stack_top);
+	t->pthread_id = (pthread_t)hl_thread_current();
 	#endif
 	if (stack_top == NULL) {
 		printf("Stack top is null on register\n");
@@ -376,7 +330,6 @@ HL_API void hl_register_thread( void *stack_top ) {
 HL_API void hl_unregister_thread() {
 	int i;
 	hl_thread_info *t = hl_get_thread();
-	checkThread(t);
 
 	if( !t )
 		hl_fatal("Thread not registered");
@@ -762,7 +715,6 @@ static void gc_mark() {
 	// scan threads stacks & registers
 	for(i=0;i<gc_threads.count;i++) {
 		hl_thread_info *t = gc_threads.threads[i];
-		checkThread(t);
 		cur_mark_stack = mark_stack;
 		gc_mark_stack(t->stack_cur,t->stack_top);
 		gc_mark_stack(&t->gc_regs,(void**)&t->gc_regs + (sizeof(jmp_buf) / sizeof(void*) - 1));
@@ -871,7 +823,6 @@ HL_API bool hl_is_blocking() {
 			return false;
 		t = gc_threads.threads[0];
 	}
-	//checkThread(t);
 	return t->gc_blocking > 0;
 }
 
@@ -879,7 +830,6 @@ HL_API void hl_blocking( bool b ) {
 	hl_thread_info *t = current_thread;
 	if( !t )
 		return; // allow hl_blocking in non-GC threads
-	//checkThread(t);
 	if( b ) {
 #		ifdef HL_THREADS
 		if( t->gc_blocking == 0 )

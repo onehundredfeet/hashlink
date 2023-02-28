@@ -222,7 +222,7 @@ static void *get_thread_stackptr( thread_handle *t, void **eip ) {
 #else
 	return NULL;
 #endif
-}
+} 
 static void printThreadInfos(const char *name) {
 	hl_threads_info *threads = hl_gc_threads_info();
 	int i;
@@ -265,7 +265,7 @@ static bool pause_thread( thread_handle *t, bool b ) {
 #elif defined(HL_MAC)
 	//kern_return_t thread_get_state(thread_read_t target_act, thread_state_flavor_t flavor, thread_state_t old_state, mach_msg_type_number_t *old_stateCnt);
 	if( b ) {
-		pthread_kill( t->inf->ucontext, SIGPROF);
+		pthread_kill( t->inf->pthread_id, SIGPROF);
 		return dispatch_semaphore_wait(shared_context.msg2, DISPATCH_TIME_FOREVER) == 0;
 		
 		/*
@@ -330,29 +330,7 @@ print_trace (void)
   free (strings);
 }
 
-static void checkThread(  hl_thread_info *t ) {
-	if (t->check1 != 1001001) { printf("check1 failed %x id %d\n)", t->check1, t->thread_id); print_trace(); exit(-1);}
-	if (t->check2 != 1001002) { printf("check2 failed %x id %d\n)", t->check2, t->thread_id); print_trace(); exit(-1);}
-	if (t->check3 != 1001003) { printf("check3 failed %x id %d\n)", t->check3, t->thread_id); print_trace(); exit(-1);}
-	if (t->check4 != 1001004) { printf("check4 failed %x id %d\n)", t->check4, t->thread_id); print_trace(); exit(-1);}
-	if (t->check5 != 1001005) { printf("check5 failed %x id %d\n)", t->check5, t->thread_id); print_trace(); exit(-1);}
-	if (t->check6 != 1001006) { printf("check6 failed %x id %d\n)", t->check6, t->thread_id); print_trace(); exit(-1);}
-	if (t->check7 != 1001007) { printf("check7 failed %x id %d\n)", t->check7, t->thread_id); print_trace(); exit(-1);}
-	if (t->check8 != 1001008) { printf("check8 failed %x id %d\n)", t->check8, t->thread_id); print_trace(); exit(-1);}
-	if (t->check9 != 1001009) { printf("check9 failed %x id %d\n)", t->check9, t->thread_id); print_trace(); exit(-1);}
-	if (t->check10 != 10010010) { printf("check10 failed %x id %d\n)", t->check10, t->thread_id); print_trace(); exit(-1);}
-	if (t->check11 != 10010011) { printf("check11 failed %x id %d\n)", t->check11, t->thread_id); print_trace(); exit(-1);}
-	if (t->check12 != 10010012) { printf("check12 failed %x id %d\n)", t->check12, t->thread_id); print_trace(); exit(-1);}
-	if (t->check13 != 10010013) { printf("check13 failed %x id %d\n)", t->check13, t->thread_id); print_trace(); exit(-1);}
-	if (t->check14 != 10010014) { printf("check14 failed %x id %d\n)", t->check14, t->thread_id); print_trace(); exit(-1);}
-	if (t->check15 != 10010015) { printf("check15 failed %x id %d\n)", t->check15, t->thread_id); print_trace(); exit(-1);}
-	if (t->check16 != 10010016) { printf("check16 failed %x id %d\n)", t->check16, t->thread_id); print_trace(); exit(-1);}
-	if (t->check17 != 10010017) { printf("check17 failed %x id %d\n)", t->check17, t->thread_id); print_trace(); exit(-1);}
-	if (t->check18 != 10010018) { printf("check18 failed %x id %d\n)", t->check18, t->thread_id); print_trace(); exit(-1);}
-}
-
 static void read_thread_data( thread_handle *t, int tidx ) {
-	checkThread(t->inf);
 	//printf("Reading thread...\n");
 //	fflush(stdout);
 	shared_context.done = 0;
@@ -436,7 +414,6 @@ static void hl_profile_loop( void *_ ) {
 			hl_thread_info *t = threads->threads[i];
 			//printf("\tExamining thread %d [%d] with stack top %p invisible %d\n", i, t->thread_id, t->stack_top, t->flags & HL_THREAD_INVISIBLE ? 1 : 0);
 			if( t->flags & HL_THREAD_INVISIBLE ) continue;
-			checkThread(t);
 			if( !cur || cur->tid != t->thread_id ) {
 //				printf("\t\tHave we lost a thread?\n");
 				// have we lost a thread ?
