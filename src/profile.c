@@ -125,7 +125,6 @@ static struct
 	dispatch_semaphore_t  msg3;
 	dispatch_semaphore_t  msg4;
 	ucontext_t context;
-	int done;
 
 } shared_context;
 
@@ -133,9 +132,6 @@ static void sigprof_handler(int sig, siginfo_t *info, void *ucontext)
 {
 	ucontext_t *ctx = ucontext;
 	shared_context.context = *ctx;
-	shared_context.done = 1;
-//	printf("SIGNALED\n");
-//	fflush(stdout);
 	dispatch_semaphore_signal(shared_context.msg2);
 	dispatch_semaphore_wait(shared_context.msg3, DISPATCH_TIME_FOREVER);
 	dispatch_semaphore_signal(shared_context.msg4);
@@ -183,17 +179,12 @@ static void *get_thread_stackptr( thread_handle *t, void **eip ) {
 #	endif
 #elif defined(HL_MAC)
 #	ifdef HL_64
-	if (shared_context.done != 1) {
-		return NULL;
-	}
 	struct __darwin_mcontext64 *mcontext = shared_context.context.uc_mcontext;
 	void *ptr = mcontext;
 
 	if (ptr == NULL) {
 		 return NULL;
 	} else {
-		//printf("Shared context was updated! %d %p\n", shared_context.done, mcontext);
-		//fflush(stdout);
 		*eip = (void*)mcontext->__ss.__rip;
 		void *ret = (void*)mcontext->__ss.__rsp;
 		return ret;
@@ -263,27 +254,12 @@ static bool pause_thread( thread_handle *t, bool b ) {
 		return sem_wait(&shared_context.msg4) == 0;
 	}
 #elif defined(HL_MAC)
-	//kern_return_t thread_get_state(thread_read_t target_act, thread_state_flavor_t flavor, thread_state_t old_state, mach_msg_type_number_t *old_stateCnt);
 	if( b ) {
 		pthread_kill( t->inf->pthread_id, SIGPROF);
 		return dispatch_semaphore_wait(shared_context.msg2, DISPATCH_TIME_FOREVER) == 0;
-		
-		/*
-		if( thread_suspend(t->inf->mach_thread_id) == KERN_SUCCESS) {
-			fflush(stdout);
-			return true;
-		}
-		printf("Failed to suspend thread %d\n", t->inf->mach_thread_id);
-		*/
 	} else {
 		dispatch_semaphore_signal(shared_context.msg3);
 		return dispatch_semaphore_wait(shared_context.msg4, DISPATCH_TIME_FOREVER) == 0;
-
-		/*
-		if( thread_resume(t->inf->mach_thread_id) == KERN_SUCCESS) {
-			return true;
-		}
-		*/
 	}
 	return false;
 #else
@@ -331,25 +307,11 @@ print_trace (void)
 }
 
 static void read_thread_data( thread_handle *t, int tidx ) {
-	//printf("Reading thread...\n");
-//	fflush(stdout);
-	shared_context.done = 0;
-
 	if( !pause_thread(t,true) ) {
 		return;
 	}
-	//printf("Getting pointer...\n");
-//	fflush(stdout);
 	void *eip = NULL;
 	void *stack = get_thread_stackptr(t,&eip);
-	//if (tidx == 0) printf("tid %d stack pointer %p\n", t->tid, stack);
-	shared_context.done = 0;
-
-	if( !stack ) {
-		pause_thread(t,false);
-		printf("Couldn't get stack pointer\n");
-		return;
-	}
 
 #if defined(HL_LINUX) || defined(HL_MAC)
 	if (t->inf->stack_top == NULL) {
@@ -512,12 +474,9 @@ void hl_profile_setup( int sample_count ) {
 #	endif
 #	if defined(HL_MAC)
 	shared_context.context.uc_mcontext = NULL;
-	shared_context.done = 0;
 	shared_context.msg2 = dispatch_semaphore_create(0);
 	shared_context.msg3 = dispatch_semaphore_create(0);
 	shared_context.msg4 = dispatch_semaphore_create(0);
-
-
 	struct sigaction action = {0};
 	action.sa_sigaction = sigprof_handler;
 	action.sa_flags = SA_SIGINFO;
