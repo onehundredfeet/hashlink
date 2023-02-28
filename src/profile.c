@@ -30,7 +30,7 @@
 #endif
 #include "hlmodule.h"
 
-#if defined(HL_LINUX) || defined(HL_APPLE) || defined(HL_MAC)
+#if defined(HL_LINUX) || defined(HL_MAC)
 #include <semaphore.h>
 #include <signal.h>
 #include <sys/syscall.h>
