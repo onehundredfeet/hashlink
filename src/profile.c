@@ -25,9 +25,6 @@
 #include <stdlib.h>
 
 #include "hl.h"
-#if HL_HEADER_DEBUG_VERSION != 0x55
-#error "HL header version mismatch"
-#endif
 #include "hlmodule.h"
 
 #if defined(HL_LINUX) || defined(HL_MAC)
