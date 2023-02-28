@@ -421,10 +421,8 @@ static void hl_profile_loop( void *_ ) {
 static void profile_event( int code, vbyte *data, int dataLen );
 
 void hl_profile_setup( int sample_count ) {
-	//printThreadInfos("PA");
 #	if defined(HL_THREADS) && (defined(HL_WIN_DESKTOP) || defined(HL_LINUX)|| defined(HL_MAC)) 
 	hl_setup_profiler(profile_event,hl_profile_end);
-	//printThreadInfos("PB");
 
 	if( data.sample_count ) return;
 	if( sample_count < 0 ) {
@@ -452,12 +450,9 @@ void hl_profile_setup( int sample_count ) {
 	action.sa_flags = SA_SIGINFO;
 	sigaction(SIGPROF, &action, NULL);
 #	endif
-
-	//printThreadInfos("PC");
 	printf("Profiling enabled (sample count=%d)\n", sample_count);
 	hl_thread_start(hl_profile_loop,NULL,false);
 #	endif
-	//printThreadInfos("PD");
 }
 
 static bool read_profile_data( profile_reader *r, void *ptr, int size ) {
