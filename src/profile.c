@@ -293,16 +293,8 @@ static void read_thread_data( thread_handle *t, int tidx ) {
 	void *stack = get_thread_stackptr(t,&eip);
 
 #if defined(HL_LINUX) || defined(HL_MAC)
-	if (t->inf->stack_top == NULL) {
-		printf("Stack top is NULL on thread '%s' id:%d '%s' \n", t->name, t->tid, t->inf->thread_name);
-		exit(-1);
-	}
     int count = hl_module_capture_stack_range(t->inf->stack_top, stack, data.stackOut, MAX_STACK_COUNT);
-//	printf("\t\t\tStack count %d\n", count);
     pause_thread(t, false);
-	if (count > 0) {
-		//printf("Stack count %d\n", count);
-	}
 #else
 	int size = (int)((unsigned char*)t->inf->stack_top - (unsigned char*)stack);
 	if( size > MAX_STACK_SIZE-32 ) size = MAX_STACK_SIZE-32;
