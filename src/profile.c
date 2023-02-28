@@ -20,9 +20,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include <execinfo.h>
-#include <stdio.h>
-#include <stdlib.h>
+
 
 #include "hl.h"
 #include "hlmodule.h"
@@ -42,6 +40,9 @@
 #include <dlfcn.h>
 #include <objc/runtime.h>
 #include <dispatch/dispatch.h>
+#include <execinfo.h>
+#include <stdio.h>
+#include <stdlib.h>
 #endif
 
 #if defined(__GLIBC__)
