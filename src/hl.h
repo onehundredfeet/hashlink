@@ -953,11 +953,7 @@ typedef struct {
 	int check16;
 	#ifdef HL_MAC
 	thread_t mach_thread_id;
-	int check17;
-	void * ucontext;
-	int check18;
-	#else
-	#error "huh?"
+	pthread_t pthread;
 	#endif
 } hl_thread_info;
 
