@@ -19,13 +19,10 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
+#include <hl.h>
+#include <hlmodule.h>
 
-
-
-#include "hl.h"
-#include "hlmodule.h"
-
-#if defined(HL_LINUX) || defined(HL_MAC)
+#if defined(HL_LINUX)
 #include <semaphore.h>
 #include <signal.h>
 #include <sys/syscall.h>
