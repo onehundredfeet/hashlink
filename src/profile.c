@@ -116,6 +116,7 @@ static void sigprof_handler(int sig, siginfo_t *info, void *ucontext)
 	sem_wait(&shared_context.msg3);
 	sem_post(&shared_context.msg4);
 }
+#elif defined(HL_MAC)
 #endif
 
 #if defined(HL_MAC) 
@@ -125,6 +126,16 @@ static struct
 	dispatch_semaphore_t  msg3;
 	dispatch_semaphore_t  msg4;
 	ucontext_t context;
+} shared_context;
+
+static void sigprof_handler(int sig, siginfo_t *info, void *ucontext)
+{
+	ucontext_t *ctx = ucontext;
+	shared_context.context = *ctx;
+	dispatch_semaphore_signal(shared_context.msg2);
+	dispatch_semaphore_wait(shared_context.msg3, DISPATCH_TIME_FOREVER);
+	dispatch_semaphore_signal(shared_context.msg4);
+}
 
 } shared_context;
 
@@ -182,8 +193,7 @@ static void *get_thread_stackptr( thread_handle *t, void **eip ) {
 	struct __darwin_mcontext64 *mcontext = shared_context.context.uc_mcontext;
 	if (mcontext != NULL) {
 		*eip = (void*)mcontext->__ss.__rip;
-		void *ret = (void*)mcontext->__ss.__rsp;
-		return ret;
+		return (void*)mcontext->__ss.__rsp;
 	}
 	return NULL;
 #	else
@@ -421,7 +431,7 @@ static void hl_profile_loop( void *_ ) {
 static void profile_event( int code, vbyte *data, int dataLen );
 
 void hl_profile_setup( int sample_count ) {
-#	if defined(HL_THREADS) && (defined(HL_WIN_DESKTOP) || defined(HL_LINUX)|| defined(HL_MAC)) 
+#	if defined(HL_THREADS) && (defined(HL_WIN_DESKTOP) || defined(HL_LINUX) || defined (HL_MAC))
 	hl_setup_profiler(profile_event,hl_profile_end);
 
 	if( data.sample_count ) return;

@@ -47,12 +47,6 @@
 #define HL_MAC
 #endif
 #endif
-#ifdef HL_MAC
-#define HL_HEADER_DEBUG_VERSION	0x55
-#endif
-
-
-
 
 #ifdef __ANDROID__
 #	define HL_ANDROID

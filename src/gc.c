@@ -19,8 +19,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
-#include <hl.h>
-
+#include "hl.h"
 #ifdef HL_WIN
 #	include <windows.h>
 #else
@@ -298,36 +297,25 @@ HL_API void hl_register_thread( void *stack_top ) {
 	t->mach_thread_id = mach_thread_self();
 	t->pthread_id = (pthread_t)hl_thread_current();
 	#endif
-	if (stack_top == NULL) {
-		printf("Stack top is null on register\n");
-		exit(-1);
-	}
-
 	t->stack_top = stack_top;
 	t->flags = HL_TRACK_MASK << HL_TREAD_TRACK_SHIFT;
 	current_thread = t;
 	hl_add_root(&t->exc_value);
 	hl_add_root(&t->exc_handler);
 
-//	printf("Shuffling threads\n");
 	gc_global_lock(true);
 	hl_thread_info **all = (hl_thread_info**)malloc(sizeof(void*) * (gc_threads.count + 1));
 	memcpy(all,gc_threads.threads,sizeof(void*)*gc_threads.count);
 	gc_threads.threads = all;
 	all[gc_threads.count++] = t;
 	gc_global_lock(false);
-
-//	printf("Mac Thread [%d] rectord at %p with top %p\n", t->thread_id, t, t->stack_top);
-
 }
 
 HL_API void hl_unregister_thread() {
 	int i;
 	hl_thread_info *t = hl_get_thread();
-
 	if( !t )
 		hl_fatal("Thread not registered");
-	printf("Unregistering thread %d\n", t->thread_id);
 	hl_remove_root(&t->exc_value);
 	hl_remove_root(&t->exc_handler);
 	gc_global_lock(true);
@@ -348,7 +336,6 @@ HL_API hl_threads_info *hl_gc_threads_info() {
 }
 
 static void gc_stop_world( bool b ) {
-//	printf("Stopping world\n");
 #	ifdef HL_THREADS
 	if( b ) {
 		int i;
@@ -722,7 +709,6 @@ static void gc_mark() {
 }
 
 static void gc_major() {
-//	printf("Major GC\n");
 	int time = TIMESTAMP(), dt;
 	gc_stats.last_mark = gc_stats.total_allocated;
 	gc_stats.last_mark_allocs = gc_stats.allocation_count;
@@ -749,7 +735,6 @@ static void gc_major() {
 }
 
 HL_API void hl_gc_major() {
-//	printf("Major GC\n");
 	gc_global_lock(true);
 	gc_major();
 	gc_global_lock(false);
