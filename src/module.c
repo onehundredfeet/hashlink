@@ -20,9 +20,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 #include "hl.h"
-#if HL_HEADER_DEBUG_VERSION != 0x55
-#error "HL header version mismatch"
-#endif
+
 #include <hlmodule.h>
 
 #ifdef HL_WIN

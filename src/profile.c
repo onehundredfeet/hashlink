@@ -136,17 +136,6 @@ static void sigprof_handler(int sig, siginfo_t *info, void *ucontext)
 	dispatch_semaphore_wait(shared_context.msg3, DISPATCH_TIME_FOREVER);
 	dispatch_semaphore_signal(shared_context.msg4);
 }
-
-} shared_context;
-
-static void sigprof_handler(int sig, siginfo_t *info, void *ucontext)
-{
-	ucontext_t *ctx = ucontext;
-	shared_context.context = *ctx;
-	dispatch_semaphore_signal(shared_context.msg2);
-	dispatch_semaphore_wait(shared_context.msg3, DISPATCH_TIME_FOREVER);
-	dispatch_semaphore_signal(shared_context.msg4);
-}
 #endif
 
 #define     REG_RAX     1
@@ -203,15 +192,7 @@ static void *get_thread_stackptr( thread_handle *t, void **eip ) {
 	return NULL;
 #endif
 } 
-static void printThreadInfos(const char *name) {
-	hl_threads_info *threads = hl_gc_threads_info();
-	int i;
-	for(i=0;i<threads->count;i++) {
-		printf("Step %s Current thread %d [%d] with stack top %p\n", name, i, threads->threads[i]->thread_id, threads->threads[i]->stack_top); 
-	}
 
-
-}
 static void thread_data_init( thread_handle *t ) {
 #ifdef HL_WIN
 	t->h = OpenThread(THREAD_ALL_ACCESS,FALSE, t->tid);
@@ -275,6 +256,7 @@ static void record_data( void *ptr, int size ) {
 	memcpy(r->data + r->currentPos, ptr, size);
 	r->currentPos += size;
 }
+/*
 static void
 print_trace (void)
 {
@@ -294,7 +276,7 @@ print_trace (void)
 
   free (strings);
 }
-
+*/
 static void read_thread_data( thread_handle *t, int tidx ) {
 	if( !pause_thread(t,true) ) {
 		return;
