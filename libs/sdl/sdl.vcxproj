@@ -242,6 +242,7 @@
   <ItemGroup>
     <ClCompile Include="gl.c" />
     <ClCompile Include="sdl.c" />
+    <ClCompile Include="sdl_gl.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
