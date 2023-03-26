@@ -108,6 +108,7 @@
     <TargetExt>.hdll</TargetExt>
     <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64;../../x64/$(Configuration)</LibraryPath>
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../src</IncludePath>
+    <TargetName>$(ProjectName)_d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -159,7 +160,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>libhl.lib;user32.lib;gdi32.lib;comdlg32.lib</AdditionalDependencies>
+      <AdditionalDependencies>user32.lib;gdi32.lib;comdlg32.lib</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -238,6 +240,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ui_win.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\libhl.vcxproj">
+      <Project>{c6213fbf-bc2b-4235-a827-84a60e848c52}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

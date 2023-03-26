@@ -108,6 +108,7 @@
     <TargetExt>.hdll</TargetExt>
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../include/sdl/include;../../src;../../include/gl</IncludePath>
     <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64;../../x64/$(Configuration);../../include/sdl/lib/x64</LibraryPath>
+    <TargetName>$(ProjectName)_d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -160,7 +161,8 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
-      <AdditionalDependencies>libhl.lib;winmm.lib;SDL2.lib;opengl32.lib;user32.lib;kernel32.lib</AdditionalDependencies>
+      <AdditionalDependencies>winmm.lib;SDL2.lib;opengl32.lib;user32.lib;kernel32.lib</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -243,6 +245,11 @@
     <ClCompile Include="gl.c" />
     <ClCompile Include="sdl.c" />
     <ClCompile Include="sdl_gl.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\libhl.vcxproj">
+      <Project>{c6213fbf-bc2b-4235-a827-84a60e848c52}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

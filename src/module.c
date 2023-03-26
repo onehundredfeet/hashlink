@@ -23,6 +23,13 @@
 
 #include <hlmodule.h>
 
+#ifdef HL_DEBUG
+#define HL_MODULE_POST_FIX "_d"
+#else
+#define HL_MODULE_POST_FIX ""
+#endif
+
+
 #ifdef HL_WIN
 #	include <windows.h>
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
@@ -370,10 +377,10 @@ static void *resolve_library( const char *lib, bool is_opt ) {
 	if( strcmp(lib,"std") == 0 ) {
 #	ifdef HL_WIN
 #		ifdef HL_64						
-		h = dlopen("libhl64.dll",RTLD_LAZY);
-		if( h == NULL ) h = dlopen("libhl.dll",RTLD_LAZY);
+		h = dlopen("libhl" HL_MODULE_POST_FIX "64.dll",RTLD_LAZY);
+		if( h == NULL ) h = dlopen("libhl"HL_MODULE_POST_FIX ".dll",RTLD_LAZY);
 #		else
-		h = dlopen("libhl.dll",RTLD_LAZY);
+		h = dlopen("libhl" HL_MODULE_POST_FIX ".dll",RTLD_LAZY);
 #		endif
 		if( h == NULL && !is_opt ) hl_fatal1("Failed to load library %s","libhl.dll");
 		return h;
@@ -384,13 +391,15 @@ static void *resolve_library( const char *lib, bool is_opt ) {
 	
 	strcpy(tmp,lib);
 
+
+
 #	ifdef HL_64
-	strcpy(tmp+strlen(lib),"64.hdll");
+	strcpy(tmp+strlen(lib), HL_MODULE_POST_FIX "64.hdll");
 	h = dlopen(tmp,RTLD_LAZY);
 	if( h != NULL ) return h;
 #	endif
 	
-	strcpy(tmp+strlen(lib),".hdll");
+	strcpy(tmp+strlen(lib), HL_MODULE_POST_FIX ".hdll");
 	h = dlopen(tmp,RTLD_LAZY);
 	if( h == NULL && !is_opt )
 		hl_fatal1("Failed to load library %s",tmp);

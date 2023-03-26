@@ -109,6 +109,7 @@
     <TargetExt>.hdll</TargetExt>
     <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64;../../x64/$(Configuration);../../include/sqlite/lib/x64</LibraryPath>
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../include/sqlite/src;../../src</IncludePath>
+    <TargetName>$(ProjectName)_d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -161,7 +162,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>libhl.lib;winmm.lib;user32.lib</AdditionalDependencies>
+      <AdditionalDependencies>winmm.lib;user32.lib</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -245,6 +247,11 @@
   <ItemGroup>
     <ClInclude Include="..\..\include\sqlite\src\sqlite3.h" />
     <ClInclude Include="..\..\include\sqlite\src\sqlite3ext.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\libhl.vcxproj">
+      <Project>{c6213fbf-bc2b-4235-a827-84a60e848c52}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

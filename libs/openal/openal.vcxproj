@@ -108,6 +108,7 @@
     <TargetExt>.hdll</TargetExt>
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../src;../../include/openal/include</IncludePath>
     <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64;../../x64/$(Configuration);../../include/openal/libs/Win64</LibraryPath>
+    <TargetName>$(ProjectName)_d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -160,7 +161,8 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
-      <AdditionalDependencies>libhl.lib;OpenAL32.lib</AdditionalDependencies>
+      <AdditionalDependencies>OpenAL32.lib</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -241,6 +243,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="openal.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\libhl.vcxproj">
+      <Project>{c6213fbf-bc2b-4235-a827-84a60e848c52}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

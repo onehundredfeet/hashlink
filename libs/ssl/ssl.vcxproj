@@ -99,6 +99,11 @@
     <ClCompile Include="..\..\include\mbedtls\library\xtea.c" />
     <ClCompile Include="ssl.c" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\libhl.vcxproj">
+      <Project>{c6213fbf-bc2b-4235-a827-84a60e848c52}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{F4D939D6-88D6-4FF2-874A-7BECF75A01C2}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
@@ -181,6 +186,7 @@
     <TargetExt>.hdll</TargetExt>
     <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64;../../x64/$(Configuration)</LibraryPath>
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../src;../../include/mbedtls/include</IncludePath>
+    <TargetName>$(ProjectName)_d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -232,7 +238,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>libhl.lib;user32.lib;gdi32.lib;ws2_32.lib;advapi32.lib;crypt32.lib</AdditionalDependencies>
+      <AdditionalDependencies>user32.lib;gdi32.lib;ws2_32.lib;advapi32.lib;crypt32.lib</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

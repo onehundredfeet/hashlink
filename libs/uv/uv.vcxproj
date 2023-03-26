@@ -108,6 +108,7 @@
     <TargetExt>.hdll</TargetExt>
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../src;../../include/libuv/include</IncludePath>
     <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64;../../x64/$(Configuration)</LibraryPath>
+    <TargetName>$(ProjectName)_d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -162,7 +163,8 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
-      <AdditionalDependencies>libhl.lib;ws2_32.lib;advapi32.lib;psapi.lib;user32.lib;iphlpapi.lib;userenv.lib</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;advapi32.lib;psapi.lib;user32.lib;iphlpapi.lib;userenv.lib</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -290,6 +292,11 @@
     <ClInclude Include="..\..\include\libuv\src\win\stream-inl.h" />
     <ClInclude Include="..\..\include\libuv\src\win\winapi.h" />
     <ClInclude Include="..\..\include\libuv\src\win\winsock.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\libhl.vcxproj">
+      <Project>{c6213fbf-bc2b-4235-a827-84a60e848c52}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

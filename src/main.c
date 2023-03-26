@@ -203,7 +203,12 @@ int main(int argc, pchar *argv[]) {
 		file = PSTR("hlboot.dat");
 		fchk = pfopen(file,"rb");
 		if( fchk == NULL ) {
-			printf("HL/JIT %d.%d.%d (c)2015-2022 Haxe Foundation\n  Usage : hl [--debug <port>] [--debug-wait] <file>\n",HL_VERSION>>16,(HL_VERSION>>8)&0xFF,HL_VERSION&0xFF);
+#ifdef HL_DEBUG
+#define CONFIG_STR "Debug"
+#else
+#define CONFIG_STR "Release"
+#endif
+			printf("HL/JIT %d.%d.%d [%s] (c)2015-2022 Haxe Foundation\n  Usage : hl [--debug <port>] [--debug-wait] <file>\n",HL_VERSION>>16,(HL_VERSION>>8)&0xFF,HL_VERSION&0xFF, CONFIG_STR);
 			return 1;
 		}
 		fclose(fchk);

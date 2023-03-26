@@ -31,6 +31,11 @@
     <ClCompile Include="gamecontroller.c" />
     <ClCompile Include="window.c" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\libhl.vcxproj">
+      <Project>{c6213fbf-bc2b-4235-a827-84a60e848c52}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{EC79BC9F-9947-4BCC-92F9-14F90CDE4B04}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
@@ -113,6 +118,7 @@
     <TargetExt>.hdll</TargetExt>
     <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64;../../x64/$(Configuration)</LibraryPath>
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../../src</IncludePath>
+    <TargetName>$(ProjectName)_d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -164,7 +170,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>libhl.lib;user32.lib;gdi32.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;xinput9_1_0.lib;dinput8.lib;shell32.lib</AdditionalDependencies>
+      <AdditionalDependencies>user32.lib;gdi32.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;xinput9_1_0.lib;dinput8.lib;shell32.lib</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
