@@ -580,6 +580,24 @@ HL_PRIM vbyte *HL_NAME(gctrl_get_name)(SDL_GameController *controller) {
 	return (vbyte*)SDL_GameControllerName(controller);
 }
 
+HL_PRIM vbyte *HL_NAME(gctrl_get_serial)(SDL_GameController *controller) {
+	
+	/*
+	SDL_JoystickGUID guid = SDL_JoystickGetGUID(controller);
+
+	char buf[sizeof(guid.data) * 2 + 1]; // 2 hex digits per byte + null terminator
+	uchar outbuf[sizeof(guid.data) * 2 + 1]; // 2 hex digits per byte + null terminator
+
+	for (int i = 0; i < 8; i++) {
+		sprintf((char*)buf + i * 2, "%02x", guid.data[i]);
+	}
+
+	hl_from_utf8( outbuf, sizeof(guid.data) * 2, buf );
+	return hl_alloc_strbytes( outbuf );
+	*/
+	return (vbyte*)SDL_GameControllerGetSerial(controller);
+}
+
 #define TGCTRL _ABSTRACT(sdl_gamecontroller)
 DEFINE_PRIM(_I32, gctrl_count, _NO_ARG);
 DEFINE_PRIM(TGCTRL, gctrl_open, _I32);
@@ -588,6 +606,7 @@ DEFINE_PRIM(_I32, gctrl_get_axis, TGCTRL _I32);
 DEFINE_PRIM(_BOOL, gctrl_get_button, TGCTRL _I32);
 DEFINE_PRIM(_I32, gctrl_get_id, TGCTRL);
 DEFINE_PRIM(_BYTES, gctrl_get_name, TGCTRL);
+DEFINE_PRIM(_BYTES, gctrl_get_serial, TGCTRL);
 
 HL_PRIM SDL_Haptic *HL_NAME(haptic_open)(SDL_GameController *controller) {
 	return SDL_HapticOpenFromJoystick(SDL_GameControllerGetJoystick(controller));

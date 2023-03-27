@@ -12,6 +12,7 @@ class GameController {
 
 	public var id(get,never) : Int;
 	public var name(get,never) : String;
+	public var serial(get,never) : String;
 
 	public function new( index : Int ){
 		ptr = gctrlOpen( index );
@@ -31,6 +32,10 @@ class GameController {
 
 	public inline function get_name() : String {
 		return @:privateAccess String.fromUTF8( gctrlGetName(ptr) );
+	}
+	
+	public inline function get_serial() : String {
+		return @:privateAccess String.fromUTF8( gctrlGetSerial(ptr) );
 	}
 
 	public function rumble( strength : Float, length : Int ) : Bool {
@@ -80,7 +85,9 @@ class GameController {
 	static function gctrlGetName( controller : GameControllerPtr ) : hl.Bytes {
 		return null;
 	}
-
+	static function gctrlGetSerial( controller : GameControllerPtr ) : hl.Bytes {
+		return null;
+	}
 	static function hapticOpen( controller : GameControllerPtr ) : HapticPtr {
 		return null;
 	}
