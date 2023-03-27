@@ -163,18 +163,13 @@ set_target_properties(libhl
     COMPILE_DEFINITIONS "_USRDLL;LIBHL_EXPORTS;HAVE_CONFIG_H;PCRE2_CODE_UNIT_WIDTH=16"
 )
 
-if (NOT APPLE)
-set(PROFILE_SRC src/profile.c)
-endif()
-
-
 add_executable(hl
     src/code.c
     src/jit.c
     src/main.c
     src/module.c
     src/debugger.c
-    ${PROFILE_SRC}
+    src/profile.c
 )
 
 if (UNIX AND NOT APPLE)
