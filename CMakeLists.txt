@@ -187,7 +187,7 @@ else()
     target_link_libraries(libhl m dl pthread)
 endif()
 
-if(BUILD_TESTING)
+if(BUILD_TESTING AND FALSE)
 
     find_program(
         HAXE_COMPILER

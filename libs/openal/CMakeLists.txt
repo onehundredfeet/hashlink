@@ -11,7 +11,9 @@ if(WIN32)
 
     set(OPENAL_INCLUDE_DIR ${INCLUDES_BASE_DIR}/openal/include)
 else()
-    find_package(OpenAL REQUIRED)
+    set( OpenAL_DIR $ENV{OPENALDIR})
+    message(${OpenAL_DIR})
+    find_package(OpenAL REQUIRED PATH ${OpenAL_DIR} NO_DEFAULT_PATH   ) 
 endif()
 
 add_library(openal.hdll SHARED openal.c)

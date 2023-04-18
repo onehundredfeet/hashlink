@@ -1,6 +1,7 @@
 #define HL_NAME(n) openal_##n
 #include <hl.h>
 
+#define openal_soft
 #if defined(__APPLE__) && !defined(openal_soft)
 	#include <OpenAL/al.h>
 	#include <OpenAL/alc.h>
