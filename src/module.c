@@ -24,7 +24,11 @@
 #include <hlmodule.h>
 
 #ifdef HL_DEBUG
+#ifdef HL_WIN
 #define HL_MODULE_POST_FIX "_d"
+#else
+#define HL_MODULE_POST_FIX ""
+#endif
 #else
 #define HL_MODULE_POST_FIX ""
 #endif
