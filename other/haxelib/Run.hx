@@ -45,6 +45,9 @@ class Build {
 		builder.add("cmake_policy(SET CMP0015 NEW)\n");
 		builder.add("cmake_policy(SET CMP0091 NEW)\n");
 
+		builder.add("include(CheckIPOSupported)\n");
+		builder.add("check_ipo_supported()\n");
+
 		builder.add('add_executable(${name}');
 
 		for( f in c_files ) {
@@ -54,8 +57,12 @@ class Build {
 
 		builder.add("SET(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -DHL_MAKE )\n");
 		builder.add("SET(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -DHL_MAKE )\n");
+		builder.add("set_property(TARGET ${name} PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)\n");
+
+		
 
 		var cmakeRoot = "${CMAKE_CURRENT_SOURCE_DIR}";
+		//set_property(TARGET example PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 		builder.add('target_include_directories(${name} PRIVATE /opt/homebrew/include ${cmakeRoot})\n');
 		builder.add('set(CMAKE_IGNORE_PATH)\n');
