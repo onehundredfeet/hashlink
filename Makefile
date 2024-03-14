@@ -1,13 +1,22 @@
 
 LBITS := $(shell getconf LONG_BIT)
 MARCH ?= $(LBITS)
+
+ifeq ($(UNAME),Darwin)
+ifneq ($(ARCH),arm64)
 PREFIX ?= /usr/local
+else
+PREFIX ?= /opt/homebrew
+endif
+else
+PREFIX ?= /usr/local
+endif
 INSTALL_DIR ?= $(PREFIX)
 INSTALL_BIN_DIR ?= $(PREFIX)/bin
 INSTALL_LIB_DIR ?= $(PREFIX)/lib
 INSTALL_INCLUDE_DIR ?= $(PREFIX)/include
 
-LIBS=fmt sdl ssl openal ui uv mysql sqlite
+LIBS=fmt sdl ssl openal ui uv # mysql sqlite
 ARCH ?= $(shell uname -m)
 
 CFLAGS = -Wall -O3 -I src -std=c11 -D LIBHL_EXPORTS
@@ -91,17 +100,22 @@ else ifeq ($(UNAME),Darwin)
 # Mac
 LIBEXT=dylib
 
-BPREFIX := $(shell brew --prefix)
+ifneq ($(ARCH),arm64)
+BREW = /usr/local/bin/brew
+else
+BREW =/opt/homebrew/bin/brew
+endif
+BPREFIX := $(shell $(BREW) --prefix)
 
-BREW_LIBJPEG := $(shell brew --prefix libjpeg-turbo)
-BREW_SDL2 := $(shell brew --prefix sdl2)
-BREW_JPEGTURBO := $(shell brew --prefix jpeg-turbo)
-BREW_VORBIS := $(shell brew --prefix libvorbis)
-BREW_OPENAL := $(shell brew --prefix openal-soft)
-BREW_MBEDTLS := $(shell brew --prefix mbedtls)
-BREW_LIBPNG := $(shell brew --prefix libpng)
-BREW_LIBOGG := $(shell brew --prefix libogg)
-BREW_LIBUV := $(shell brew --prefix libuv)
+BREW_LIBJPEG := $(shell $(BREW) --prefix libjpeg-turbo)
+BREW_SDL2 := $(shell $(BREW) --prefix sdl2)
+BREW_JPEGTURBO := $(shell $(BREW) --prefix jpeg-turbo)
+BREW_VORBIS := $(shell $(BREW) --prefix libvorbis)
+BREW_OPENAL := $(shell $(BREW) --prefix openal-soft)
+BREW_MBEDTLS := $(shell $(BREW) --prefix mbedtls@2)
+BREW_LIBPNG := $(shell $(BREW) --prefix libpng)
+BREW_LIBOGG := $(shell $(BREW) --prefix libogg)
+BREW_LIBUV := $(shell $(BREW) --prefix libuv)
 
 CFLAGS += -m$(MARCH) -I include -I $(BREW_LIBJPEG)/include \
 	-I $(BREW_JPEGTURBO)/include -I $(BREW_SDL2)/include -I $(BREW_VORBIS)/include \
