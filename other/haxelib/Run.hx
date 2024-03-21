@@ -55,14 +55,11 @@ class Build {
 		}
 		builder.add(')\n');
 
-		builder.add("SET(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -DHL_MAKE )\n");
+		builder.add("SET(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -DHL_MAKE)\n");
 		builder.add("SET(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -DHL_MAKE )\n");
-		builder.add("set_property(TARGET ${name} PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)\n");
-
-		
-
+//		builder.add('set_property(TARGET ${name} PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)\n');
+//		builder.add('target_compile_definitions(${name} PUBLIC _HL_EXT_NATIVES=<sd_hl_inlines.h> )\n');
 		var cmakeRoot = "${CMAKE_CURRENT_SOURCE_DIR}";
-		//set_property(TARGET example PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 		builder.add('target_include_directories(${name} PRIVATE /opt/homebrew/include ${cmakeRoot})\n');
 		builder.add('set(CMAKE_IGNORE_PATH)\n');
