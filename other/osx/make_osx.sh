@@ -10,7 +10,7 @@ mv ssl.hdll ssl_x86_64.dylib
 mv ui.hdll ui_x86_64.dylib
 mv uv.hdll uv_x86_64.dylib
 mv hl hl_x86_64
-
+mv libhl.a libhl_x86_64.a
 
 make clean
 make -j 32
@@ -22,6 +22,7 @@ mv ssl.hdll ssl_arm64.dylib
 mv ui.hdll ui_arm64.dylib
 mv uv.hdll uv_arm64.dylib
 mv hl hl_arm64
+mv libhl.a libhl_arm64.a
 
 lipo -create -output libhl.dylib libhl_x86_64.dylib libhl_arm64.dylib 
 lipo -create -output fmt.hdll fmt_x86_64.dylib fmt_arm64.dylib
@@ -30,6 +31,7 @@ lipo -create -output sdl.hdll sdl_x86_64.dylib sdl_arm64.dylib
 lipo -create -output ssl.hdll ssl_x86_64.dylib ssl_arm64.dylib
 lipo -create -output ui.hdll ui_x86_64.dylib ui_arm64.dylib
 lipo -create -output uv.hdll uv_x86_64.dylib uv_arm64.dylib
+lipo -create -output libhl.a libhl_x86_64.a libhl_arm64.a
 mv hl_x86_64 hl
 
 

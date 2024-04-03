@@ -99,6 +99,7 @@ else ifeq ($(UNAME),Darwin)
 
 # Mac
 LIBEXT=dylib
+LIBEXT_STATIC=a
 
 ifneq ($(ARCH),arm64)
 BREW = /usr/local/bin/brew
@@ -153,8 +154,10 @@ CFLAGS += -arch $(ARCH)
 LFLAGS += -arch $(ARCH)
 
 LFLAGS += -rpath @executable_path -rpath $(INSTALL_LIB_DIR)
-LIBFLAGS += -rpath @executable_path -rpath $(INSTALL_LIB_DIR)
-LHL_LINK_FLAGS += -install_name @rpath/libhl.dylib
+LIBFLAGS_STATIC = $(LIBFLAGS)
+LIBFLAGS_SHARED = $(LIBFLAGS) -rpath @executable_path -rpath $(INSTALL_LIB_DIR)
+LHL_LINK_FLAGS_STATIC = $(LHL_LINK_FLAGS)
+LHL_LINK_FLAGS_SHARED = $(LHL_LINK_FLAGS) -install_name @rpath/libhl.dylib
 else
 
 # Linux
@@ -208,7 +211,9 @@ src/std/regexp.o: src/std/regexp.c
 	${CC} ${CFLAGS} -o $@ -c $< ${PCRE_FLAGS}
 
 libhl: ${LIB}
-	${CC} ${CFLAGS} -o libhl.$(LIBEXT) -m${MARCH} ${LIBFLAGS} ${LHL_LINK_FLAGS} -shared ${LIB} -lpthread -lm
+	${CC} ${CFLAGS} -o libhl.$(LIBEXT) -m${MARCH} ${LIBFLAGS_SHARED} ${LHL_LINK_FLAGS_SHARED} -shared ${LIB} -lpthread -lm
+	ar -rcs libhl.$(LIBEXT_STATIC) ${LIB}
+	ranlib libhl.$(LIBEXT_STATIC)
 
 hlc: ${BOOT}
 	${CC} ${CFLAGS} -o hlc ${BOOT} ${LFLAGS} ${EXTRA_LFLAGS}
