@@ -54,3 +54,4 @@ node_modules
 /*.tgz
 args.txt
 /other/benchs/hlc
+hl_arm64
