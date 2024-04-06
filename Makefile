@@ -313,6 +313,6 @@ clean_o:
 	rm -f ${STD} ${BOOT} ${RUNTIME} ${PCRE} ${HL} ${FMT} ${SDL} ${SSL} ${OPENAL} ${UI} ${UV} ${MYSQL} ${SQLITE} ${HL_DEBUG}
 
 clean: clean_o
-	rm -f hl hl.exe libhl.$(LIBEXT) *.hdll
+	rm -f hl hl.exe libhl.$(LIBEXT) libhl.$(LIBEXT_STATIC) *.hdll
 
 .PHONY: libhl hl hlc fmt sdl libs release
