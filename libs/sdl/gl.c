@@ -52,6 +52,14 @@
 #include "GLImports.h"
 #undef GL_IMPORT
 #define GL_IMPORT(fun,t)	fun = (PFNGL##t##PROC)SDL_GL_GetProcAddress(#fun); if( fun == NULL ) return 1
+#ifndef __APPLE__
+#define GL_IMPORT_OPT(fun, t) PFNGL##t##PROC fun = NULL; if ( !fun ) { fun = (PFNGL##t##PROC)SDL_GL_GetProcAddress(#fun); if( fun == NULL ) hl_error("function not resolved"); }
+#endif
+#endif
+
+#if !defined GL_IMPORT_OPT
+#define GL_IMPORT_OPT(fun, t)
+#define glMultiDrawElementsIndirectCountARB(...) hl_error("function not resolved");
 #endif
 
 static int GLLoadAPI() {
@@ -576,6 +584,11 @@ HL_PRIM void HL_NAME(gl_multi_draw_elements_indirect)( int mode, int type, vbyte
 #	endif
 }
 
+HL_PRIM void HL_NAME(gl_multi_draw_elements_indirect_count)(int mode, int type, vbyte* data, vbyte* drawcount, int maxdrawcount, int stride) {
+	GL_IMPORT_OPT(glMultiDrawElementsIndirectCountARB, MULTIDRAWELEMENTSINDIRECTCOUNTARB)
+	glMultiDrawElementsIndirectCountARB(mode, type, data, (GLintptr)drawcount, maxdrawcount, stride);
+}
+
 HL_PRIM int HL_NAME(gl_get_config_parameter)( int feature ) {
 	switch( feature ) {
 	case 0:
@@ -593,6 +606,19 @@ HL_PRIM int HL_NAME(gl_get_config_parameter)( int feature ) {
 		break;
 	}
 	return -1;
+}
+
+HL_PRIM bool HL_NAME(gl_has_extension)(vstring *name) {
+	const char* cname = hl_to_utf8(name->bytes);
+	GLint numExtensions = 0;
+	glGetIntegerv(GL_NUM_EXTENSIONS, &numExtensions);
+	for (int i = 0; i < numExtensions; i++) {
+		const char* ext = (const char*)glGetStringi(GL_EXTENSIONS, i);
+		if (ext && strcmp(cname, ext) == 0) {
+			return true;
+		}
+	}
+	return false;
 }
 
 // queries
@@ -784,6 +810,7 @@ DEFINE_PRIM(_VOID,gl_draw_elements_instanced,_I32 _I32 _I32 _I32 _I32);
 DEFINE_PRIM(_VOID,gl_draw_arrays,_I32 _I32 _I32);
 DEFINE_PRIM(_VOID,gl_draw_arrays_instanced,_I32 _I32 _I32 _I32);
 DEFINE_PRIM(_VOID,gl_multi_draw_elements_indirect, _I32 _I32 _BYTES _I32 _I32);
+DEFINE_PRIM(_VOID,gl_multi_draw_elements_indirect_count, _I32 _I32 _BYTES _BYTES _I32 _I32);
 DEFINE_PRIM(_NULL(_I32),gl_create_vertex_array,_NO_ARG);
 DEFINE_PRIM(_VOID,gl_bind_vertex_array,_NULL(_I32));
 DEFINE_PRIM(_VOID,gl_delete_vertex_array,_NULL(_I32));
@@ -803,3 +830,4 @@ DEFINE_PRIM(_I32, gl_get_program_resource_index, _NULL(_I32) _I32 _STRING);
 DEFINE_PRIM(_VOID, gl_shader_storage_block_binding, _NULL(_I32) _I32 _I32);
 
 DEFINE_PRIM(_I32, gl_get_config_parameter, _I32);
+DEFINE_PRIM(_BOOL, gl_has_extension, _STRING);

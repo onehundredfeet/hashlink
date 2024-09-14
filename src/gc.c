@@ -1198,7 +1198,7 @@ static void *gc_alloc_page_memory( int size ) {
 			ptr = mmap(base_addr,size+EXTRA_SIZE,PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANONYMOUS,-1,0);
 			int offset = (int)((int_val)ptr) & (GC_PAGE_SIZE-1);
 			void *aligned = (char*)ptr + (GC_PAGE_SIZE - offset);
-			pextra *inf = (pextra*)(offset > (EXTRA_SIZE>>1) ? ((char*)ptr + EXTRA_SIZE - sizeof(pextra)) : (char*)ptr);
+			pextra *inf = (pextra*)( (char*)ptr + size + EXTRA_SIZE - sizeof(pextra));
 			inf->page_ptr = aligned;
 			inf->base_ptr = ptr;
 			inf->next = extra_pages;
@@ -1271,16 +1271,13 @@ vdynamic *hl_alloc_dynbool( bool b ) {
 
 vdynamic *hl_alloc_obj( hl_type *t ) {
 	vobj *o;
-	int size;
 	int i;
 	hl_runtime_obj *rt = t->obj->rt;
 	if( rt == NULL || rt->methods == NULL ) rt = hl_get_obj_proto(t);
-	size = rt->size;
-	if( size & (HL_WSIZE-1) ) size += HL_WSIZE - (size & (HL_WSIZE-1));
 	if( t->kind == HSTRUCT ) {
-		o = (vobj*)hl_gc_alloc_gen(t, size, (rt->hasPtr ? MEM_KIND_RAW : MEM_KIND_NOPTR) | MEM_ZERO);
+		o = (vobj*)hl_gc_alloc_gen(t, rt->size, (rt->hasPtr ? MEM_KIND_RAW : MEM_KIND_NOPTR) | MEM_ZERO);
 	} else {
-		o = (vobj*)hl_gc_alloc_gen(t, size, (rt->hasPtr ? MEM_KIND_DYNAMIC : MEM_KIND_NOPTR) | MEM_ZERO);
+		o = (vobj*)hl_gc_alloc_gen(t, rt->size, (rt->hasPtr ? MEM_KIND_DYNAMIC : MEM_KIND_NOPTR) | MEM_ZERO);
 		o->t = t;
 	}
 	for(i=0;i<rt->nbindings;i++) {
@@ -1470,7 +1467,7 @@ static void gc_count_live_page( gc_pheader *p, int private_data ) {
 		gc_iter_live_blocks(p, gc_count_live_block);
 }
 
-static int hl_gc_get_live_objects( hl_type *t, varray *arr ) {
+HL_API int hl_gc_get_live_objects( hl_type *t, varray *arr ) {
 	if( !hl_is_dynamic(t) ) return -1;
 	gc_global_lock(true);
 	gc_stop_world(true);

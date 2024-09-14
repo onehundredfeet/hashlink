@@ -186,12 +186,19 @@ ifdef DEBUG
 CFLAGS += -g
 endif
 
-all: libhl hl libs
+all: libhl libs
+ifeq ($(ARCH),arm64)
+	$(warning HashLink vm is not supported on arm64, skipping)
+else
+all: hl
+endif
 
 install:
 	$(UNAME)==Darwin && ${MAKE} uninstall
+ifneq ($(ARCH),arm64)
 	mkdir -p $(INSTALL_BIN_DIR)
 	cp hl $(INSTALL_BIN_DIR)
+endif
 	mkdir -p $(INSTALL_LIB_DIR)
 	cp *.hdll $(INSTALL_LIB_DIR)
 	cp libhl.${LIBEXT} $(INSTALL_LIB_DIR)
@@ -254,26 +261,33 @@ mesa:
 release: release_prepare release_$(RELEASE_NAME)
 
 release_haxelib:
+	${MAKE} HLIB=hashlink release_haxelib_package
 	${MAKE} HLIB=directx release_haxelib_package
 	${MAKE} HLIB=sdl release_haxelib_package
 	${MAKE} HLIB=openal release_haxelib_package
 
-ifeq ($(HLIB),directx)
-HLPACK=dx
+ifeq ($(HLIB),hashlink)
+HLDIR=other/haxelib
+HLPACK=templates hlmem memory.hxml Run.hx
 else
-HLPACK=$(HLIB)
+HLDIR=libs/$(HLIB)
+ifeq ($(HLIB),directx)
+HLPACK=dx *.h *.c *.cpp
+else
+HLPACK=$(HLIB) *.h *.c
+endif
 endif
 
 release_haxelib_package:
 	rm -rf $(HLIB)_release
 	mkdir $(HLIB)_release
-	(cd libs/$(HLIB) && cp -R $(HLPACK) *.h *.c* haxelib.json ../../$(HLIB)_release | true)
+	(cd $(HLDIR) && cp -R $(HLPACK) haxelib.json $(CURDIR)/$(HLIB)_release | true)
 	zip -r $(HLIB).zip $(HLIB)_release
 	haxelib submit $(HLIB).zip
 	rm -rf $(HLIB)_release
 
 BUILD_DIR ?= .
-PACKAGE_NAME := hashlink-$(shell $(BUILD_DIR)/hl --version)-$(RELEASE_NAME)
+PACKAGE_NAME = $(eval PACKAGE_NAME := hashlink-$(shell $(BUILD_DIR)/hl --version)-$(RELEASE_NAME))$(PACKAGE_NAME)
 
 release_prepare:
 	rm -rf $(PACKAGE_NAME)
@@ -291,7 +305,11 @@ release_win:
 	rm -rf $(PACKAGE_NAME)
 
 release_linux release_osx:
+ifeq ($(ARCH),arm64)
+	cp libhl.$(LIBEXT) *.hdll $(PACKAGE_NAME)
+else
 	cp hl libhl.$(LIBEXT) *.hdll $(PACKAGE_NAME)
+endif
 	tar -cvzf $(PACKAGE_NAME).tar.gz $(PACKAGE_NAME)
 	rm -rf $(PACKAGE_NAME)
 

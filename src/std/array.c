@@ -45,9 +45,14 @@ HL_PRIM hl_type *hl_array_type( varray *a ) {
 	return a->at;
 }
 
+HL_PRIM vbyte *hl_array_bytes( varray *a ) {
+	return hl_aptr(a,vbyte);
+}
+
 DEFINE_PRIM(_ARR,alloc_array,_TYPE _I32);
 DEFINE_PRIM(_VOID,array_blit,_ARR _I32 _ARR _I32 _I32);
 DEFINE_PRIM(_TYPE,array_type,_ARR);
+DEFINE_PRIM(_BYTES,array_bytes,_ARR);
 
 HL_PRIM void *hl_alloc_carray( hl_type *at, int size ) {
 	if( at->kind != HOBJ && at->kind != HSTRUCT )
@@ -57,13 +62,11 @@ HL_PRIM void *hl_alloc_carray( hl_type *at, int size ) {
 
 	hl_runtime_obj *rt = at->obj->rt;
 	if( rt == NULL || rt->methods == NULL ) rt = hl_get_obj_proto(at);
-	int osize = rt->size;
-	if( osize & (HL_WSIZE-1) ) osize += HL_WSIZE - (osize & (HL_WSIZE-1));
-	char *arr = hl_gc_alloc_gen(at, size * osize, (rt->hasPtr ? MEM_KIND_RAW : MEM_KIND_NOPTR) | MEM_ZERO);
+	char *arr = hl_gc_alloc_gen(at, size * rt->size, (rt->hasPtr ? MEM_KIND_RAW : MEM_KIND_NOPTR) | MEM_ZERO);
 	if( at->kind == HOBJ || rt->nbindings ) {
 		int i,k;
 		for(k=0;k<size;k++) {
-			char *o = arr + osize * k;
+			char *o = arr + rt->size * k;
 			if( at->kind == HOBJ )
 				((vobj*)o)->t = at;
 			for(i=0;i<rt->nbindings;i++) {
