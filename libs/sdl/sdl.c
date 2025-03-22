@@ -478,6 +478,10 @@ HL_PRIM bool HL_NAME(get_window_grab)(SDL_Window* window) {
 HL_PRIM int HL_NAME(get_global_mouse_state)(int* x, int* y) {
 	return SDL_GetGlobalMouseState(x, y);
 }
+HL_PRIM int HL_NAME(get_cpu_count)() {
+	return SDL_GetCPUCount();
+}
+
 
 HL_PRIM const char *HL_NAME(detect_keyboard_layout)() {
 	char q = SDL_GetKeyFromScancode(SDL_SCANCODE_Q);
@@ -516,6 +520,7 @@ DEFINE_PRIM(_BOOL, get_window_grab, TWIN);
 DEFINE_PRIM(_I32, get_global_mouse_state, _REF(_I32) _REF(_I32));
 DEFINE_PRIM(_BYTES, detect_keyboard_layout, _NO_ARG);
 DEFINE_PRIM(_BOOL, hint_value, _BYTES _BYTES);
+DEFINE_PRIM(_I32, get_cpu_count, _NO_ARG);
 
 // Window
 

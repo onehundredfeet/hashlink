@@ -251,6 +251,10 @@ class Sdl {
 	public static function getDragAndDropEnabled(): Bool {
 		return false;
 	}
+	@:hlNative("?sdl", "get_cpu_count")
+	public static function getCPUCount(): Int {
+		return 0;
+	}
 }
 
 enum abstract SDLHint(String) from String to String {
